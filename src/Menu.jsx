@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { doc, collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from './firebase'
+import { WINE_COLORS, WINE_TASTES } from './util'
 
 const byName = (a, b) => a.name.localeCompare(b.name, 'bg')
 const catOf = i => i.category || 'Меню'
@@ -37,6 +38,7 @@ export default function Menu() {
   const [slide, setSlide] = useState(0)
   const [info, setInfo] = useState(false)
   const [showPass, setShowPass] = useState(false)
+  const [wColor, setWColor] = useState('')
 
   useEffect(() => {
     const offRest = onSnapshot(doc(db, 'restaurants', slug), s => setRest(s.exists() ? s.data() : null))
@@ -86,6 +88,35 @@ export default function Menu() {
   const shown = items.filter(i => catOf(i) === current).sort(byName)
   const featured = items.filter(i => i.featured)
 
+  // винена карта: филтър по цвят и групиране по вкус (сухо, полусухо...)
+  const isWine = shown.some(i => i.wineColor || i.taste)
+  const wColors = WINE_COLORS.filter(([k]) => shown.some(i => i.wineColor === k))
+  const wc = wColors.some(([k]) => k === wColor) ? wColor : ''
+  const view = isWine && wc ? shown.filter(i => i.wineColor === wc) : shown
+  const blocks = isWine
+    ? [
+        ...WINE_TASTES.map(([k, l]) => [l, view.filter(i => i.taste === k)]),
+        ['Други', view.filter(i => !WINE_TASTES.some(([k]) => k === i.taste))],
+      ].filter(b => b[1].length)
+    : [['', view]]
+  const hasGlass = i => i.glassPrice !== undefined && i.glassPrice !== null && i.glassPrice !== ''
+  const wmeta = i => [i.grape, i.region, i.year, i.volume && `${i.volume} мл`, hasGlass(i) && `чаша ${Number(i.glassPrice).toFixed(2)} ${cur}`].filter(Boolean).join(' · ')
+
+  const dish = i => (
+    <button type="button" key={i.id}
+      className={`dish${openId === i.id ? ' open' : ''}${i.soldOut ? ' out' : ''}`}
+      onClick={() => setOpenId(openId === i.id ? null : i.id)}>
+      {i.photo && <img className="pic" src={i.photo} alt={i.name} loading="lazy" />}
+      <div className="info">
+        <h3>{i.name}</h3>
+        {wmeta(i) && <p className="wmeta">{wmeta(i)}</p>}
+        {i.desc && <p>{i.desc}</p>}
+        {i.soldOut && <em className="tag">изчерпано</em>}
+      </div>
+      <span className="price">{money(i)}</span>
+    </button>
+  )
+
   function goTo(i) {
     const c = all.find(x => x.name === catOf(i))
     const top = (c && c.parent && all.find(x => x.name === c.parent)) || c
@@ -112,7 +143,7 @@ export default function Menu() {
           </div>
 
           <div className="idrow">
-            <div className={`avatar${rest.logo ? (rest.logoBg === 'light' ? ' light' : '') : ' init'}`}>
+            <div className={`avatar${rest.logo ? ` ${rest.logoShape || 'circle'}${rest.logoBg === 'light' ? ' light' : ''}` : ' init'}`}>
               {rest.logo ? <img src={rest.logo} alt={rest.name} /> : <span>{rest.name.trim().charAt(0).toUpperCase()}</span>}
             </div>
             <div className="idtext">
@@ -222,19 +253,20 @@ export default function Menu() {
           {cat && (
             <>
               <h2>{title} <small>{shown.length} {shown.length === 1 ? 'продукт' : 'продукта'}</small></h2>
-              <div className="list" key={current}>
-                {shown.map(i => (
-                  <button type="button" key={i.id}
-                    className={`dish${openId === i.id ? ' open' : ''}${i.soldOut ? ' out' : ''}`}
-                    onClick={() => setOpenId(openId === i.id ? null : i.id)}>
-                    {i.photo && <img className="pic" src={i.photo} alt={i.name} loading="lazy" />}
-                    <div className="info">
-                      <h3>{i.name}</h3>
-                      {i.desc && <p>{i.desc}</p>}
-                      {i.soldOut && <em className="tag">изчерпано</em>}
-                    </div>
-                    <span className="price">{money(i)}</span>
-                  </button>
+              {isWine && wColors.length > 1 && (
+                <nav className="wfilter" aria-label="Вид вино">
+                  <button type="button" aria-pressed={!wc} onClick={() => setWColor('')}>Всички</button>
+                  {wColors.map(([k, l]) => (
+                    <button type="button" key={k} aria-pressed={wc === k} onClick={() => setWColor(k)}>{l}</button>
+                  ))}
+                </nav>
+              )}
+              <div className="list" key={current + wc}>
+                {blocks.map(([label, arr]) => (
+                  <div key={label || '_'}>
+                    {isWine && label && <h4 className="wgroup">{label}</h4>}
+                    {arr.map(dish)}
+                  </div>
                 ))}
               </div>
             </>

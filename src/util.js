@@ -17,6 +17,15 @@ export function fileToDataUrl(file, max = 800, quality = 0.72, type = 'image/jpe
   })
 }
 
+// Винена карта: цвят и вкус (сладост) на виното
+export const WINE_COLORS = [['red', 'Червено'], ['white', 'Бяло'], ['rose', 'Розе'], ['sparkling', 'Пенливо'], ['orange', 'Оранжево']]
+export const WINE_TASTES = [['dry', 'Сухо'], ['semi-dry', 'Полусухо'], ['semi-sweet', 'Полусладко'], ['sweet', 'Сладко']]
+const low = s => (s || '').trim().toLowerCase()
+// категория „Вино“ или подкатегория на „Вино“
+export const isWineCat = (name, parent) => low(name).startsWith('вин') || low(parent).startsWith('вин')
+// „Алкохол“ или подкатегория на „Алкохол“
+export const isAlcCat = (name, parent) => low(name) === 'алкохол' || low(parent) === 'алкохол'
+
 const BG = { а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'ts',ч:'ch',ш:'sh',щ:'sht',ъ:'a',ь:'y',ю:'yu',я:'ya' }
 
 // "Рафи Бар" или "Raffi Bar" -> "rafi-bar" (главни букви и кирилица са позволени при писане)

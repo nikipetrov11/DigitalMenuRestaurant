@@ -300,3 +300,31 @@ header > .status { margin: 12px 20px 0; }
 .luxe .fprice { color: var(--on-accent); border-radius: 2px; }
 .luxe .fcard strong { color: #f6eedb; font-family: 'Playfair Display', Georgia, serif; font-weight: 500; }
 .luxe .fcard small { color: #a0977f; }
+
+/* ===== форма на логото ===== */
+.avatar.rounded { border-radius: 24px; }
+.avatar.square { border-radius: 6px; }
+.avatar.wide { width: auto; min-width: 92px; max-width: 200px; border-radius: 18px; }
+.avatar.wide img { width: auto; max-width: 100%; }
+.page .avatar.free { width: auto; max-width: 200px; background: transparent; border: 0; box-shadow: none; border-radius: 0; overflow: visible; }
+.page .avatar.free img { width: auto; max-width: 100%; padding: 0; filter: drop-shadow(0 6px 14px rgba(30,20,5,.25)); }
+.avatar-prev.rounded { border-radius: 22px; }
+.avatar-prev.square { border-radius: 6px; }
+.avatar-prev.wide { width: auto; max-width: 180px; border-radius: 16px; }
+.avatar-prev.free { width: auto; max-width: 180px; padding: 0; background: #e9e6df; border-radius: 8px; }
+.avatar-prev.free.light { background: #e9e6df; border: 0; }
+.wrapmodes { flex-wrap: wrap; }
+.wrapmodes .mode { flex: 1 1 30%; }
+
+/* ===== винена карта ===== */
+.winebox { margin: 0; padding: 14px; background: #faf9f6; border: 1px solid var(--line); border-radius: 12px; }
+.wfilter { display: flex; gap: 8px; margin: 0 0 14px 6px; overflow-x: auto; scrollbar-width: none; }
+.wfilter button { flex: none; min-height: 0; padding: 7px 14px; color: #161616; font: 600 .82rem Montserrat, sans-serif; background: transparent; border: 1.5px solid rgba(0,0,0,.14); border-radius: 999px; }
+.wfilter button[aria-pressed=true] { background: color-mix(in srgb, var(--accent) 24%, #fff); border-color: var(--accent); }
+.wgroup { margin: 0; padding: 14px 20px 6px; color: #8a8a85; font: 700 .72rem Montserrat, sans-serif; letter-spacing: .1em; text-transform: uppercase; background: color-mix(in srgb, var(--accent) 8%, transparent); border-top: 1px solid rgba(0,0,0,.06); }
+.list > div:first-child > .wgroup { border-top: 0; }
+.info p.wmeta { color: #6d6a64; font-size: .8rem; font-weight: 600; }
+.luxe .wfilter button { color: #bdb39c; border: 1px solid rgba(255,255,255,.12); border-radius: 2px; letter-spacing: .06em; }
+.luxe .wfilter button[aria-pressed=true] { color: var(--accent); background: transparent; border-color: var(--accent); }
+.luxe .wgroup { padding: 18px 2px 4px; color: var(--accent); font-family: 'Playfair Display', Georgia, serif; font-size: .85rem; background: none; border-top: 1px solid rgba(255,255,255,.09); }
+.luxe .info p.wmeta { color: #bdb39c; }

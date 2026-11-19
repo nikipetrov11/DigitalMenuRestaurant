@@ -9,7 +9,7 @@ import {
 } from 'firebase/firestore'
 import { auth, db } from './firebase'
 import QRCode from 'qrcode'
-import { fileToDataUrl } from './util'
+import { fileToDataUrl, WINE_COLORS, WINE_TASTES, isWineCat, isAlcCat } from './util'
 
 const SUGGEST = ['Салати', 'Предястия', 'Основни ястия', 'Пици', 'Паста', 'Десерти', 'Напитки']
 const COLORS = ['#e9b45c', '#e8691a', '#c0392b', '#1f6b4f', '#1d4e89', '#333333']
@@ -105,7 +105,7 @@ function Dashboard({ slug }) {
 
 function Dishes({ docRef, col, items, catObjs, cur }) {
   const cats = catObjs.map(c => c.name)
-  const empty = { name: '', price: '', category: '', newCat: '', desc: '', photo: '', featured: false }
+  const empty = { name: '', price: '', category: '', newCat: '', desc: '', photo: '', featured: false, wineColor: '', taste: '', grape: '', region: '', year: '', volume: '', glass: '' }
   const [f, setF] = useState(empty)
   const [editId, setEditId] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -113,6 +113,10 @@ function Dishes({ docRef, col, items, catObjs, cur }) {
   const set = k => e => setF({ ...f, [k]: e.target.value })
   // избраната категория; ако още няма категории, се показва поле за нова
   const category = f.category === '__new' || cats.includes(f.category) ? f.category : (cats[0] || '__new')
+  // за „Вино“ и „Алкохол“ се показват допълнителни (незадължителни) полета
+  const catObj = catObjs.find(c => c.name === category)
+  const wine = !!catObj && isWineCat(catObj.name, catObj.parent)
+  const alc = !!catObj && isAlcCat(catObj.name, catObj.parent)
 
   async function pick(e) {
     const file = e.target.files[0]
@@ -130,7 +134,10 @@ function Dishes({ docRef, col, items, catObjs, cur }) {
         if (!cat) throw new Error('NEED_CAT')
         if (!cats.includes(cat)) await updateDoc(docRef, { categories: [...catObjs, { name: cat, group: '', parent: '' }] })
       }
-      const data = { name: f.name.trim(), price: Number(f.price), category: cat, desc: f.desc.trim(), photo: f.photo, featured: f.featured }
+      const w = wine
+        ? { wineColor: f.wineColor, taste: f.taste, grape: f.grape.trim(), region: f.region.trim(), year: f.year.trim(), glassPrice: f.glass === '' ? null : Number(f.glass) }
+        : { wineColor: '', taste: '', grape: '', region: '', year: '', glassPrice: null }
+      const data = { name: f.name.trim(), price: Number(f.price), category: cat, desc: f.desc.trim(), photo: f.photo, featured: f.featured, ...w, volume: wine || alc ? f.volume.trim() : '' }
       if (editId) await updateDoc(doc(col, editId), data)
       else await addDoc(col, { ...data, visible: true })
       setF({ ...empty, category: cat })
@@ -145,7 +152,11 @@ function Dishes({ docRef, col, items, catObjs, cur }) {
   function edit(i) {
     setEditId(i.id)
     setMsg('')
-    setF({ name: i.name, price: i.price, category: i.category || '', newCat: '', desc: i.desc || '', photo: i.photo || '', featured: !!i.featured })
+    setF({
+      name: i.name, price: i.price, category: i.category || '', newCat: '', desc: i.desc || '', photo: i.photo || '', featured: !!i.featured,
+      wineColor: i.wineColor || '', taste: i.taste || '', grape: i.grape || '', region: i.region || '', year: i.year || '', volume: i.volume || '',
+      glass: i.glassPrice ?? '',
+    })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -189,7 +200,7 @@ function Dishes({ docRef, col, items, catObjs, cur }) {
         {f.photo && <button type="button" className="link" onClick={() => setF({ ...f, photo: '' })}>Махни снимката</button>}
 
         <label>Име <input value={f.name} onChange={set('name')} required /></label>
-        <label>Цена ({cur}) <input type="number" step="0.01" min="0" value={f.price} onChange={set('price')} required /></label>
+        <label>{wine ? `Цена за бутилка (${cur})` : `Цена (${cur})`} <input type="number" step="0.01" min="0" value={f.price} onChange={set('price')} required /></label>
         <label>Категория
           <select value={category} onChange={set('category')}>
             {catObjs.map(c => <option key={c.name} value={c.name}>{c.parent ? `${c.parent} › ${c.name}` : c.group ? `${c.group} · ${c.name}` : c.name}</option>)}
@@ -198,6 +209,38 @@ function Dishes({ docRef, col, items, catObjs, cur }) {
         </label>
         {category === '__new' && (
           <input value={f.newCat} onChange={set('newCat')} placeholder="Име на новата категория, напр. Салати" />
+        )}
+        {(wine || alc) && (
+          <div className="stack winebox">
+            <strong>{wine ? 'Данни за виното' : 'Данни за напитката'} <span className="muted">(всичко е по желание)</span></strong>
+            {wine && (
+              <div className="row2">
+                <label>Вид
+                  <select value={f.wineColor} onChange={set('wineColor')}>
+                    <option value="">Не е посочено</option>
+                    {WINE_COLORS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                  </select>
+                </label>
+                <label>Вкус
+                  <select value={f.taste} onChange={set('taste')}>
+                    <option value="">Не е посочено</option>
+                    {WINE_TASTES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                  </select>
+                </label>
+              </div>
+            )}
+            {wine && (
+              <div className="row2">
+                <label>Сорт грозде <input value={f.grape} onChange={set('grape')} placeholder="Напр. Мавруд, Каберне, Шардоне" /></label>
+                <label>Регион / производител <input value={f.region} onChange={set('region')} placeholder="Напр. Мелник" /></label>
+              </div>
+            )}
+            <div className="row2">
+              {wine && <label>Година <input value={f.year} onChange={set('year')} placeholder="2021" inputMode="numeric" /></label>}
+              <label>Обем (мл) <input type="number" min="0" value={f.volume} onChange={set('volume')} placeholder={wine ? '750' : '50'} /></label>
+            </div>
+            {wine && <label>Цена на чаша ({cur}) <input type="number" step="0.01" min="0" value={f.glass} onChange={set('glass')} placeholder="Ако се продава и на чаша" /></label>}
+          </div>
         )}
         <label>Описание (по желание) <input value={f.desc} onChange={set('desc')} /></label>
         <label className="check"><input type="checkbox" checked={f.featured} onChange={e => setF({ ...f, featured: e.target.checked })} /> Препоръчваме (показва се най-горе с голяма снимка)</label>
@@ -276,6 +319,17 @@ function Categories({ docRef, catObjs, items }) {
     save(list)
   }
 
+  // винена карта: „Вино“ и отделно „Алкохол“ с подкатегории (без Вино)
+  function addWineCard() {
+    const list = [...catObjs]
+    const has = n => list.some(c => c.name.toLowerCase() === n.toLowerCase())
+    if (!has('Вино')) list.push({ name: 'Вино', group: '', parent: '' })
+    if (!has('Алкохол')) list.push({ name: 'Алкохол', group: '', parent: '' })
+    const p = list.find(c => c.name.toLowerCase() === 'алкохол')
+    ALC.filter(n => n !== 'Вино').forEach(n => { if (!has(n)) list.push({ name: n, group: p.group || '', parent: p.name }) })
+    save(list)
+  }
+
   function move(c, d) {
     const sibs = sibsOf(c)
     const o = sibs[sibs.findIndex(x => x.name === c.name) + d]
@@ -344,6 +398,12 @@ function Categories({ docRef, catObjs, items }) {
     <>
       <div className="stack card">
         <h2>Добави категория</h2>
+        {!catObjs.some(c => c.name.toLowerCase() === 'вино') && (
+          <div>
+            <p className="muted">За винена карта: категория Вино (с вид и вкус) и отделно Алкохол.</p>
+            <div className="chips"><button type="button" className="chip" onClick={addWineCard}>+ Винена карта (Вино + Алкохол)</button></div>
+          </div>
+        )}
         {alcLeft && (
           <div>
             <p className="muted">Готов пример с подкатегории: Алкохол → Бира, Вино, Водка, Уиски…</p>
@@ -390,7 +450,7 @@ function Categories({ docRef, catObjs, items }) {
 function Look({ docRef, rest }) {
   const [v, setV] = useState({
     name: rest.name, theme: rest.theme || 'classic', hideName: !!rest.hideName, color: rest.color || '#e9b45c', currency: rest.currency || '€',
-    logo: rest.logo || '', logoBg: rest.logoBg || 'dark', opens: rest.opens || '', closes: rest.closes || '',
+    logo: rest.logo || '', logoBg: rest.logoBg || 'dark', logoShape: rest.logoShape || 'circle', opens: rest.opens || '', closes: rest.closes || '',
     tagline: rest.tagline || '', wifi: rest.wifi || '', wifiPass: rest.wifiPass || '',
     address: rest.address || '', phone: rest.phone || '', facebook: rest.facebook || '', google: rest.google || '',
     slides: rest.slides?.length ? rest.slides : rest.cover ? [rest.cover] : [],
@@ -404,7 +464,7 @@ function Look({ docRef, rest }) {
 
   async function pickLogo(e) {
     const file = e.target.files[0]
-    if (file) setV({ ...v, logo: await fileToDataUrl(file, 300, 0.9, 'image/png') })
+    if (file) setV({ ...v, logo: await fileToDataUrl(file, 420, 0.9, 'image/png') })
   }
 
   async function save(e) {
@@ -434,19 +494,27 @@ function Look({ docRef, rest }) {
       </div>
 
       <div>
-        <strong>Лого (в кръг)</strong>
-        <p className="muted">Най-добре PNG с прозрачен фон. Показва се в кръг вляво, върху долния ръб на банера.</p>
+        <strong>Лого</strong>
+        <p className="muted">Най-добре PNG с прозрачен фон. Показва се вляво, върху долния ръб на банера.</p>
         <input type="file" accept="image/*" onChange={pickLogo} />
         {v.logo && (
           <div className="logo-row">
-            <img className={`avatar-prev${v.logoBg === 'light' ? ' light' : ''}`} src={v.logo} alt="" />
+            <img className={`avatar-prev ${v.logoShape}${v.logoBg === 'light' ? ' light' : ''}`} src={v.logo} alt="" />
             <button type="button" className="link" onClick={() => setV({ ...v, logo: '' })}>Махни</button>
           </div>
         )}
-        <div className="modes">
-          <button type="button" className={`mode${v.logoBg !== 'light' ? ' on' : ''}`} onClick={() => setV({ ...v, logoBg: 'dark' })}>Тъмен кръг</button>
-          <button type="button" className={`mode${v.logoBg === 'light' ? ' on' : ''}`} onClick={() => setV({ ...v, logoBg: 'light' })}>Светъл кръг</button>
+        <p className="muted" style={{ marginTop: 10 }}>Форма на логото</p>
+        <div className="modes wrapmodes">
+          {[['circle', 'Кръг'], ['rounded', 'Закръглен квадрат'], ['square', 'Квадрат'], ['wide', 'Правоъгълник'], ['free', 'Без рамка']].map(([k, t]) => (
+            <button key={k} type="button" className={`mode${v.logoShape === k ? ' on' : ''}`} onClick={() => setV({ ...v, logoShape: k })}>{t}</button>
+          ))}
         </div>
+        {v.logoShape !== 'free' && (
+          <div className="modes">
+            <button type="button" className={`mode${v.logoBg !== 'light' ? ' on' : ''}`} onClick={() => setV({ ...v, logoBg: 'dark' })}>Тъмен фон</button>
+            <button type="button" className={`mode${v.logoBg === 'light' ? ' on' : ''}`} onClick={() => setV({ ...v, logoBg: 'light' })}>Светъл фон</button>
+          </div>
+        )}
       </div>
 
       <div>
