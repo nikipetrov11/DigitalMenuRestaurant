@@ -97,7 +97,7 @@ export default function Menu() {
   }
 
   return (
-    <div className="page" style={{ '--accent': accent, '--on-accent': onAccent(accent) }}>
+    <div className={`page${rest.theme === 'luxury' ? ' luxe' : ''}`} style={{ '--accent': accent, '--on-accent': onAccent(accent) }}>
       <div className="shell">
         <header>
           <div className="cover">

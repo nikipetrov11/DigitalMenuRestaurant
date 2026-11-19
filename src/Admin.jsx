@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
 import {
   onAuthStateChanged, signOut,
-  createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signInWithEmailAndPassword,
 } from 'firebase/auth'
 import {
-  collection, query, where, getDocs, doc, setDoc, addDoc, updateDoc, deleteDoc,
+  collection, query, where, getDocs, doc, addDoc, updateDoc, deleteDoc,
   onSnapshot, arrayUnion,
 } from 'firebase/firestore'
 import { auth, db } from './firebase'
 import QRCode from 'qrcode'
-import { fileToDataUrl, slugify } from './util'
+import { fileToDataUrl } from './util'
 
 const SUGGEST = ['Салати', 'Предястия', 'Основни ястия', 'Пици', 'Паста', 'Десерти', 'Напитки']
 const COLORS = ['#e9b45c', '#e8691a', '#c0392b', '#1f6b4f', '#1d4e89', '#333333']
@@ -25,32 +25,27 @@ export default function Admin() {
 function Login() {
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
-  const [isNew, setIsNew] = useState(false)
   const [err, setErr] = useState('')
 
   async function submit(e) {
     e.preventDefault()
     setErr('')
     try {
-      if (isNew) await createUserWithEmailAndPassword(auth, email, pass)
-      else await signInWithEmailAndPassword(auth, email, pass)
-    } catch (ex) {
-      setErr('Неуспешен вход. Провери имейла и паролата (поне 6 символа). ' + (ex.code || ''))
+      await signInWithEmailAndPassword(auth, email, pass)
+    } catch {
+      setErr('Неуспешен вход. Провери имейла и паролата.')
     }
   }
 
   return (
     <main className="wrap narrow">
-      <h1>{isNew ? 'Нова регистрация' : 'Вход за собственици'}</h1>
+      <h1>Вход за собственици</h1>
       <form onSubmit={submit} className="stack">
         <input type="email" placeholder="Имейл" value={email} onChange={e => setEmail(e.target.value)} required />
         <input type="password" placeholder="Парола" value={pass} onChange={e => setPass(e.target.value)} required />
         {err && <p className="err">{err}</p>}
-        <button>{isNew ? 'Регистрирай се' : 'Влез'}</button>
+        <button>Влез</button>
       </form>
-      <button className="link" onClick={() => setIsNew(!isNew)}>
-        {isNew ? 'Вече имам акаунт' : 'Нямам акаунт'}
-      </button>
     </main>
   )
 }
@@ -67,49 +62,8 @@ function Panel({ user }) {
   return (
     <main className="wrap">
       <p className="bar">{user.email} <button className="link" onClick={() => signOut(auth)}>Изход</button></p>
-      {slug ? <Dashboard slug={slug} /> : <CreateRestaurant uid={user.uid} onDone={setSlug} />}
+      {slug ? <Dashboard slug={slug} /> : <><h1>Няма свързано заведение</h1><p className="muted">Този акаунт още няма заведение. Свържи се с нас, за да го настроим.</p></>}
     </main>
-  )
-}
-
-function CreateRestaurant({ uid, onDone }) {
-  const [name, setName] = useState('')
-  const [slug, setSlug] = useState('')
-  const [touched, setTouched] = useState(false)
-  const [err, setErr] = useState('')
-  const final = slugify(slug)
-
-  async function create(e) {
-    e.preventDefault()
-    setErr('')
-    if (final.length < 3) return setErr('Адресът трябва да е поне 3 букви или цифри.')
-    try {
-      await setDoc(doc(db, 'restaurants', final), {
-        name: name.trim(), ownerId: uid, color: '#e9b45c', currency: '€', categories: [],
-      })
-      onDone(final)
-    } catch {
-      setErr('Този адрес е зает. Опитай с друг.')
-    }
-  }
-
-  return (
-    <>
-      <h1>Създай заведението си</h1>
-      <form onSubmit={create} className="stack narrow">
-        <label>Име на заведението
-          <input value={name} required placeholder="Напр. Рафи Бар"
-            onChange={e => { setName(e.target.value); if (!touched) setSlug(slugify(e.target.value)) }} />
-        </label>
-        <label>Адрес в интернет
-          <input value={slug} required placeholder="Напр. rafi"
-            onChange={e => { setTouched(true); setSlug(e.target.value) }} />
-        </label>
-        <small>Менюто ще е на: {location.origin}/{final || 'rafi'}</small>
-        {err && <p className="err">{err}</p>}
-        <button>Създай</button>
-      </form>
-    </>
   )
 }
 
@@ -435,7 +389,7 @@ function Categories({ docRef, catObjs, items }) {
 
 function Look({ docRef, rest }) {
   const [v, setV] = useState({
-    name: rest.name, hideName: !!rest.hideName, color: rest.color || '#e9b45c', currency: rest.currency || '€',
+    name: rest.name, theme: rest.theme || 'classic', hideName: !!rest.hideName, color: rest.color || '#e9b45c', currency: rest.currency || '€',
     logo: rest.logo || '', logoBg: rest.logoBg || 'dark', opens: rest.opens || '', closes: rest.closes || '',
     tagline: rest.tagline || '', wifi: rest.wifi || '', wifiPass: rest.wifiPass || '',
     address: rest.address || '', phone: rest.phone || '', facebook: rest.facebook || '', google: rest.google || '',
@@ -470,6 +424,14 @@ function Look({ docRef, rest }) {
       <h2>Външен вид</h2>
       <label>Име на заведението <input value={v.name} onChange={e => setV({ ...v, name: e.target.value })} required /></label>
       <label className="check"><input type="checkbox" checked={v.hideName} onChange={e => setV({ ...v, hideName: e.target.checked })} /> Скрий името до логото (ако логото вече го съдържа)</label>
+
+      <div>
+        <strong>Стил на менюто</strong>
+        <div className="modes">
+          <button type="button" className={`mode${v.theme !== 'luxury' ? ' on' : ''}`} onClick={() => setV({ ...v, theme: 'classic' })}>Класически</button>
+          <button type="button" className={`mode${v.theme === 'luxury' ? ' on' : ''}`} onClick={() => setV({ ...v, theme: 'luxury' })}>Луксозен (тъмен)</button>
+        </div>
+      </div>
 
       <div>
         <strong>Лого (в кръг)</strong>

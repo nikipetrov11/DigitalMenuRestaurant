@@ -256,3 +256,47 @@ header > .status { margin: 12px 20px 0; }
 .meta .status { gap: 6px; padding: 10px 10px; white-space: nowrap; }
 .meta .status.closed { white-space: normal; }
 .meta .status i { flex: none; }
+
+
+/* ===== луксозен тъмен стил (theme: 'luxury') ===== */
+.luxe { color: #efe7d6; background: #0b0a09; }
+.luxe::before { background: radial-gradient(640px 420px at 50% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%), #0b0a09; }
+.luxe .cover { border-radius: 2px; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); box-shadow: none; }
+.luxe .avatar { background: #0b0a09; border-color: #0b0a09; box-shadow: 0 0 0 1px var(--accent); }
+.luxe .avatar.light { background: #fff; }
+.luxe .avatar.init { background: var(--accent); }
+.luxe .idname { color: #f6eedb; font: 500 clamp(1.15rem, 5vw, 1.7rem)/1.15 'Playfair Display', Georgia, serif; letter-spacing: .04em; }
+.luxe .tagline { color: #a89f8c; font-weight: 500; font-style: italic; }
+.luxe .meta .status, .luxe .meta .infobtn { color: #efe7d6; background: rgba(255,255,255,.03); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); border-radius: 2px; box-shadow: none; letter-spacing: .06em; text-transform: uppercase; font-size: .7rem; }
+.luxe .meta .infobtn[aria-expanded=true] { color: var(--on-accent); background: var(--accent); }
+.luxe .infopanel { background: #14110e; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 2px; box-shadow: none; }
+.luxe .irow span { color: var(--accent); }
+.luxe .irow strong { color: #efe7d6; }
+.luxe .ibtn { color: #efe7d6; background: transparent; border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.luxe .ibtn i { border-color: var(--accent); color: var(--accent); }
+
+.luxe .sticky { background: rgba(11,10,9,.9); border-bottom: 1px solid rgba(255,255,255,.07); }
+.luxe .sticky::after { background: linear-gradient(180deg, rgba(0,0,0,.5), transparent); }
+.luxe .gtabs button { color: #8f8776; font-family: 'Playfair Display', Georgia, serif; font-size: .95rem; letter-spacing: .08em; text-transform: uppercase; }
+.luxe .gtabs button[aria-pressed=true] { color: #f6eedb; border-bottom-color: var(--accent); }
+.luxe .pills button { color: #d9cfb9; background: transparent; border: 1px solid rgba(255,255,255,.16); border-radius: 2px; box-shadow: none; font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; }
+.luxe .pills button[aria-pressed=true] { color: var(--on-accent); background: var(--accent); border-color: var(--accent); box-shadow: none; }
+.luxe .subpills button { color: #bdb39c; background: transparent; border: 1px solid rgba(255,255,255,.12); border-radius: 2px; letter-spacing: .06em; }
+.luxe .subpills button[aria-pressed=true] { color: var(--accent); background: transparent; border-color: var(--accent); }
+
+.luxe .sec h2 { color: #f6eedb; font: 500 1.7rem/1.2 'Playfair Display', Georgia, serif; letter-spacing: .02em; }
+.luxe .sec h2 small { color: #8f8776; font: 500 .8rem Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+.luxe .empty { color: #8f8776; }
+.luxe .list { background: transparent; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
+.luxe .dish { padding: 20px 2px; color: inherit; border-top: 1px solid rgba(255,255,255,.09); }
+.luxe .pic { border-radius: 2px; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.luxe .info h3 { color: #f6eedb; font: 500 1.15rem/1.3 'Playfair Display', Georgia, serif; letter-spacing: .02em; }
+.luxe .info p { color: #a0977f; }
+.luxe .price { padding: 0; color: var(--accent); font: 600 1.1rem 'Playfair Display', Georgia, serif; background: none; border-radius: 0; }
+.luxe .tag { color: #bdb39c; background: rgba(255,255,255,.08); border-radius: 2px; }
+
+.luxe .feat h2 { color: #f6eedb; font: 500 1.5rem/1.2 'Playfair Display', Georgia, serif; }
+.luxe .fimg { border-radius: 2px; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); box-shadow: none; background-color: #1a1612; }
+.luxe .fprice { color: var(--on-accent); border-radius: 2px; }
+.luxe .fcard strong { color: #f6eedb; font-family: 'Playfair Display', Georgia, serif; font-weight: 500; }
+.luxe .fcard small { color: #a0977f; }
