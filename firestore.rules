@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    // Всяко заведение: restaurants/{slug}
+    match /restaurants/{slug} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid
+        && slug.matches('^[a-z0-9-]{3,30}$')
+        && slug != 'admin';
+
+      allow update: if request.auth != null
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId;
+
+      allow delete: if request.auth != null
+        && resource.data.ownerId == request.auth.uid;
+
+      // Ястията на заведението: само собственикът пише
+      match /items/{itemId} {
+        allow read: if true;
+        allow write: if request.auth != null
+          && get(/databases/$(db)/documents/restaurants/$(slug)).data.ownerId == request.auth.uid;
+      }
+    }
+  }
+}
