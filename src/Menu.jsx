@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { doc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore'
+import { doc, collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from './firebase'
 
 const byName = (a, b) => a.name.localeCompare(b.name, 'bg')
@@ -39,9 +39,10 @@ export default function Menu() {
   const [showPass, setShowPass] = useState(false)
 
   useEffect(() => {
-    getDoc(doc(db, 'restaurants', slug)).then(s => setRest(s.exists() ? s.data() : null))
+    const offRest = onSnapshot(doc(db, 'restaurants', slug), s => setRest(s.exists() ? s.data() : null))
     const q = query(collection(db, 'restaurants', slug, 'items'), where('visible', '==', true))
-    return onSnapshot(q, snap => setItems(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+    const offItems = onSnapshot(q, snap => setItems(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+    return () => { offRest(); offItems() }
   }, [slug])
 
   useEffect(() => { if (rest?.name) document.title = rest.name }, [rest])

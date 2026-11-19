@@ -162,7 +162,7 @@ function Dishes({ docRef, col, items, catObjs, cur }) {
 
   async function pick(e) {
     const file = e.target.files[0]
-    if (file) setF({ ...f, photo: await fileToDataUrl(file, 800, 0.72) })
+    if (file) setF({ ...f, photo: await fileToDataUrl(file, 480, 0.6) })
   }
 
   async function save(e) {
@@ -445,12 +445,12 @@ function Look({ docRef, rest }) {
 
   async function addSlide(e) {
     const file = e.target.files[0]
-    if (file && v.slides.length < 3) setV({ ...v, slides: [...v.slides, await fileToDataUrl(file, 1100, 0.6)] })
+    if (file && v.slides.length < 3) setV({ ...v, slides: [...v.slides, await fileToDataUrl(file, 900, 0.55)] })
   }
 
   async function pickLogo(e) {
     const file = e.target.files[0]
-    if (file) setV({ ...v, logo: await fileToDataUrl(file, 500, 0.9, 'image/png') })
+    if (file) setV({ ...v, logo: await fileToDataUrl(file, 300, 0.9, 'image/png') })
   }
 
   async function save(e) {
