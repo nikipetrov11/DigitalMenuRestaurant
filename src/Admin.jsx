@@ -340,6 +340,8 @@ function Look({ docRef, rest }) {
   const [v, setV] = useState({
     name: rest.name, hideName: !!rest.hideName, color: rest.color || '#e9b45c', currency: rest.currency || '€',
     logo: rest.logo || '', logoBg: rest.logoBg || 'dark', opens: rest.opens || '', closes: rest.closes || '',
+    tagline: rest.tagline || '', wifi: rest.wifi || '', wifiPass: rest.wifiPass || '',
+    address: rest.address || '', phone: rest.phone || '', facebook: rest.facebook || '', google: rest.google || '',
     slides: rest.slides?.length ? rest.slides : rest.cover ? [rest.cover] : [],
   })
   const [msg, setMsg] = useState('')
@@ -410,6 +412,22 @@ function Look({ docRef, rest }) {
         <div className="row2">
           <label>Отваря в <input type="time" value={v.opens} onChange={e => setV({ ...v, opens: e.target.value })} /></label>
           <label>Затваря в <input type="time" value={v.closes} onChange={e => setV({ ...v, closes: e.target.value })} /></label>
+        </div>
+      </div>
+
+      <div>
+        <strong>Информация за заведението (по желание)</strong>
+        <p className="muted">Показва се в бутон „Информация“ до името. Работното време се взима от полетата по-горе. Празните полета не се показват.</p>
+        <div className="stack">
+          <label>Кратко приветствие под името <input value={v.tagline} onChange={e => setV({ ...v, tagline: e.target.value })} placeholder="Напр. Добре дошли в мястото за чаша ароматно кафе" /></label>
+          <div className="row2">
+            <label>Wi-Fi мрежа <input value={v.wifi} onChange={e => setV({ ...v, wifi: e.target.value })} /></label>
+            <label>Wi-Fi парола <input value={v.wifiPass} onChange={e => setV({ ...v, wifiPass: e.target.value })} /></label>
+          </div>
+          <label>Адрес <input value={v.address} onChange={e => setV({ ...v, address: e.target.value })} placeholder="гр. Първомай, ул. Княз Борис I 1Б" /></label>
+          <label>Телефон <input type="tel" value={v.phone} onChange={e => setV({ ...v, phone: e.target.value })} placeholder="+359 ..." /></label>
+          <label>Facebook страница (линк) <input value={v.facebook} onChange={e => setV({ ...v, facebook: e.target.value })} placeholder="https://facebook.com/..." /></label>
+          <label>Google отзиви (линк) <input value={v.google} onChange={e => setV({ ...v, google: e.target.value })} placeholder="https://g.page/r/.../review" /></label>
         </div>
       </div>
 

@@ -34,6 +34,8 @@ export default function Menu() {
   const [cActive, setCActive] = useState(null)
   const [openId, setOpenId] = useState(null)
   const [slide, setSlide] = useState(0)
+  const [info, setInfo] = useState(false)
+  const [showPass, setShowPass] = useState(false)
 
   useEffect(() => {
     getDoc(doc(db, 'restaurants', slug)).then(s => setRest(s.exists() ? s.data() : null))
@@ -59,6 +61,8 @@ export default function Menu() {
   const accent = rest.color || '#e9b45c'
   const money = i => `${Number(i.price).toFixed(2)} ${cur}`
   const status = openStatus(rest.opens, rest.closes)
+  const hasInfo = !!(rest.opens || rest.wifi || rest.address || rest.phone || rest.facebook || rest.google)
+  const link = u => (/^https?:\/\//i.test(u) ? u : `https://${u}`)
 
   const all = (rest.categories || []).map(norm)
   items.forEach(i => { if (!all.some(c => c.name === catOf(i))) all.push({ name: catOf(i), group: '' }) })
@@ -97,8 +101,56 @@ export default function Menu() {
             <div className={`avatar${rest.logo ? (rest.logoBg === 'light' ? ' light' : '') : ' init'}`}>
               {rest.logo ? <img src={rest.logo} alt={rest.name} /> : <span>{rest.name.trim().charAt(0).toUpperCase()}</span>}
             </div>
-            {!rest.hideName && <h1 className="idname">{rest.name}</h1>}
+            <div className="idtext">
+              {!rest.hideName && <h1 className="idname">{rest.name}</h1>}
+              {rest.tagline && <p className="tagline">{rest.tagline}</p>}
+            </div>
+            {hasInfo && (
+              <button type="button" className="infobtn" aria-expanded={info} onClick={() => setInfo(!info)}>Информация</button>
+            )}
           </div>
+
+          {info && hasInfo && (
+            <div className="infopanel">
+              {rest.opens && rest.closes && (
+                <div className="irow"><span>Работно време</span><strong>{rest.opens} - {rest.closes}</strong></div>
+              )}
+              {rest.wifi && (
+                <div className="irow">
+                  <span>Wi-Fi</span>
+                  <strong>
+                    {rest.wifi}
+                    {rest.wifiPass && (
+                      <>
+                        {' • '}
+                        <button type="button" className="pass" onClick={() => setShowPass(!showPass)} aria-label={showPass ? 'Скрий паролата' : 'Покажи паролата'}>
+                          {showPass ? rest.wifiPass : '••••••••'}
+                        </button>
+                      </>
+                    )}
+                  </strong>
+                </div>
+              )}
+              {rest.address && (
+                <div className="irow">
+                  <span>Адрес</span>
+                  <strong><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rest.address)}`} target="_blank" rel="noreferrer">{rest.address}</a></strong>
+                </div>
+              )}
+              {rest.phone && (
+                <div className="irow">
+                  <span>Телефон</span>
+                  <strong><a href={`tel:${rest.phone.replace(/[^\d+]/g, '')}`}>{rest.phone}</a></strong>
+                </div>
+              )}
+              {(rest.facebook || rest.google) && (
+                <div className="ibtns">
+                  {rest.facebook && <a className="ibtn" href={link(rest.facebook)} target="_blank" rel="noreferrer"><i>F</i>Последвайте ни</a>}
+                  {rest.google && <a className="ibtn" href={link(rest.google)} target="_blank" rel="noreferrer"><i>G</i>Оценете преживяването си</a>}
+                </div>
+              )}
+            </div>
+          )}
 
           {status && <div className={`status${status.open ? '' : ' closed'}`}><i />{status.text}</div>}
         </header>
