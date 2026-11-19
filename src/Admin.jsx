@@ -13,7 +13,7 @@ import { fileToDataUrl, slugify } from './util'
 
 const SUGGEST = ['Салати', 'Предястия', 'Основни ястия', 'Пици', 'Паста', 'Десерти', 'Напитки']
 const COLORS = ['#e9b45c', '#e8691a', '#c0392b', '#1f6b4f', '#1d4e89', '#333333']
-const nameOf = c => (typeof c === 'string' ? c : c.name)
+const ALC = ['Бира', 'Вино', 'Водка', 'Уиски', 'Отлежало уиски', 'Джин и Мартини', 'Узо и ракия', 'Ром и Коняк', 'Ликьори']
 
 export default function Admin() {
   const [user, setUser] = useState(undefined)
@@ -127,8 +127,8 @@ function Dashboard({ slug }) {
   }, [slug])
 
   if (!rest) return <p>Зареждане…</p>
-  const catObjs = (rest.categories || []).map(c => (typeof c === 'string' ? { name: c, group: '' } : { name: c.name, group: c.group || '' }))
-  items.forEach(i => { if (i.category && !catObjs.some(c => c.name === i.category)) catObjs.push({ name: i.category, group: '' }) })
+  const catObjs = (rest.categories || []).map(c => (typeof c === 'string' ? { name: c, group: '', parent: '' } : { name: c.name, group: c.group || '', parent: c.parent || '' }))
+  items.forEach(i => { if (i.category && !catObjs.some(c => c.name === i.category)) catObjs.push({ name: i.category, group: '', parent: '' }) })
 
   return (
     <>
@@ -174,7 +174,7 @@ function Dishes({ docRef, col, items, catObjs, cur }) {
       if (cat === '__new') {
         cat = f.newCat.trim()
         if (!cat) throw new Error('NEED_CAT')
-        if (!cats.includes(cat)) await updateDoc(docRef, { categories: [...catObjs, { name: cat, group: '' }] })
+        if (!cats.includes(cat)) await updateDoc(docRef, { categories: [...catObjs, { name: cat, group: '', parent: '' }] })
       }
       const data = { name: f.name.trim(), price: Number(f.price), category: cat, desc: f.desc.trim(), photo: f.photo, featured: f.featured }
       if (editId) await updateDoc(doc(col, editId), data)
@@ -195,8 +195,33 @@ function Dishes({ docRef, col, items, catObjs, cur }) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const sorted = [...items].sort((a, b) =>
-    (a.category || '').localeCompare(b.category || '', 'bg') || a.name.localeCompare(b.name, 'bg'))
+  const [q, setQ] = useState('')
+  const term = q.trim().toLowerCase()
+  const matches = i => !term || i.name.toLowerCase().includes(term) || (i.desc || '').toLowerCase().includes(term)
+  const itemsOf = n => items.filter(i => i.category === n && matches(i)).sort((a, b) => a.name.localeCompare(b.name, 'bg'))
+  const isChild = c => c.parent && catObjs.some(p => p.name === c.parent)
+  const tops = catObjs.filter(c => !isChild(c))
+  const kidsOf = n => catObjs.filter(c => c.parent === n)
+  const totalOf = c => itemsOf(c.name).length + kidsOf(c.name).reduce((sum, k) => sum + itemsOf(k.name).length, 0)
+  const loose = items.filter(i => !i.category && matches(i)).sort((a, b) => a.name.localeCompare(b.name, 'bg'))
+
+  const row = i => (
+    <div className="item" key={i.id}>
+      {i.photo ? <img className="thumb" src={i.photo} alt="" /> : <div className="thumb" />}
+      <div className="grow">
+        <strong>{i.name}</strong>
+        <div className="muted">
+          {Number(i.price).toFixed(2)} {cur}{i.visible ? '' : ' · скрито'}{i.soldOut ? ' · изчерпано' : ''}{i.featured ? ' · препоръчвано' : ''}
+        </div>
+      </div>
+      <div className="actions">
+        <button className="link" onClick={() => edit(i)}>Промени</button>
+        <button className="link" onClick={() => updateDoc(doc(col, i.id), { visible: !i.visible })}>{i.visible ? 'Скрий' : 'Покажи'}</button>
+        <button className="link" onClick={() => updateDoc(doc(col, i.id), { soldOut: !i.soldOut })}>{i.soldOut ? 'Налично' : 'Изчерпано'}</button>
+        <button className="link danger" onClick={() => confirm(`Изтриване на „${i.name}“?`) && deleteDoc(doc(col, i.id))}>Изтрий</button>
+      </div>
+    </div>
+  )
 
   return (
     <>
@@ -213,7 +238,7 @@ function Dishes({ docRef, col, items, catObjs, cur }) {
         <label>Цена ({cur}) <input type="number" step="0.01" min="0" value={f.price} onChange={set('price')} required /></label>
         <label>Категория
           <select value={category} onChange={set('category')}>
-            {catObjs.map(c => <option key={c.name} value={c.name}>{c.group ? `${c.group} · ${c.name}` : c.name}</option>)}
+            {catObjs.map(c => <option key={c.name} value={c.name}>{c.parent ? `${c.parent} › ${c.name}` : c.group ? `${c.group} · ${c.name}` : c.name}</option>)}
             <option value="__new">+ Нова категория…</option>
           </select>
         </label>
@@ -229,24 +254,34 @@ function Dishes({ docRef, col, items, catObjs, cur }) {
       </form>
 
       <h2>Ястия ({items.length})</h2>
-      {sorted.length === 0 && <p className="muted">Още няма добавени ястия. Попълни формата по-горе.</p>}
-      {sorted.map(i => (
-        <div className="item" key={i.id}>
-          {i.photo ? <img className="thumb" src={i.photo} alt="" /> : <div className="thumb" />}
-          <div className="grow">
-            <strong>{i.name}</strong>
-            <div className="muted">
-              {i.category} · {Number(i.price).toFixed(2)} {cur}{i.visible ? '' : ' · скрито'}{i.soldOut ? ' · изчерпано' : ''}{i.featured ? ' · препоръчвано' : ''}
+      {items.length > 0 && <input className="search" type="search" placeholder="Търси ястие по име…" value={q} onChange={e => setQ(e.target.value)} />}
+      {items.length === 0 && <p className="muted">Още няма добавени ястия. Попълни формата по-горе.</p>}
+      {term && items.length > 0 && !items.some(matches) && <p className="muted">Няма намерени ястия.</p>}
+
+      {tops.map(c => {
+        const total = totalOf(c)
+        if (!total) return null
+        return (
+          <details className="cat" key={c.name} open={term ? true : undefined}>
+            <summary><span>{c.name}{c.group && <span className="sub-tag"> · {c.group}</span>}</span><span className="cnt">{total}</span></summary>
+            <div className="cat-body">
+              {itemsOf(c.name).map(row)}
+              {kidsOf(c.name).map(k => itemsOf(k.name).length > 0 && (
+                <details className="cat" key={k.name} open={term ? true : undefined}>
+                  <summary><span>{k.name}</span><span className="cnt">{itemsOf(k.name).length}</span></summary>
+                  <div className="cat-body">{itemsOf(k.name).map(row)}</div>
+                </details>
+              ))}
             </div>
-          </div>
-          <div className="actions">
-            <button className="link" onClick={() => edit(i)}>Промени</button>
-            <button className="link" onClick={() => updateDoc(doc(col, i.id), { visible: !i.visible })}>{i.visible ? 'Скрий' : 'Покажи'}</button>
-            <button className="link" onClick={() => updateDoc(doc(col, i.id), { soldOut: !i.soldOut })}>{i.soldOut ? 'Налично' : 'Изчерпано'}</button>
-            <button className="link danger" onClick={() => confirm(`Изтриване на „${i.name}“?`) && deleteDoc(doc(col, i.id))}>Изтрий</button>
-          </div>
-        </div>
-      ))}
+          </details>
+        )
+      })}
+      {loose.length > 0 && (
+        <details className="cat" open={term ? true : undefined}>
+          <summary><span>Без категория</span><span className="cnt">{loose.length}</span></summary>
+          <div className="cat-body">{loose.map(row)}</div>
+        </details>
+      )}
     </>
   )
 }
@@ -254,8 +289,15 @@ function Dishes({ docRef, col, items, catObjs, cur }) {
 function Categories({ docRef, catObjs, items }) {
   const [name, setName] = useState('')
   const [group, setGroup] = useState('')
+  const [parent, setParent] = useState('')
   const [msg, setMsg] = useState('')
-  const groups = [...new Set(catObjs.map(c => c.group).filter(Boolean))]
+  const isChild = c => c.parent && catObjs.some(p => p.name === c.parent)
+  const tops = catObjs.filter(c => !isChild(c))
+  const kidsOf = n => catObjs.filter(c => c.parent === n)
+  const sibsOf = c => (isChild(c) ? catObjs.filter(x => x.parent === c.parent) : tops)
+  const groups = [...new Set(tops.map(c => c.group).filter(Boolean))]
+  const parentObj = tops.find(c => c.name === parent)
+  const par = parentObj ? parentObj.name : ''
 
   async function save(list) {
     setMsg('')
@@ -267,47 +309,113 @@ function Categories({ docRef, catObjs, items }) {
     n = n.trim()
     if (!n) return
     if (catObjs.some(c => c.name.toLowerCase() === n.toLowerCase())) return setMsg('Тази категория вече я има.')
-    save([...catObjs, { name: n, group: group.trim() }])
+    save([...catObjs, { name: n, group: parentObj ? parentObj.group : group.trim(), parent: par }])
   }
 
-  function move(i, d) {
+  // „Алкохол“ с готовите подкатегории
+  function addAlcohol() {
+    const list = [...catObjs]
+    const has = n => list.some(c => c.name.toLowerCase() === n.toLowerCase())
+    if (!has('Алкохол')) list.push({ name: 'Алкохол', group: '', parent: '' })
+    const p = list.find(c => c.name.toLowerCase() === 'алкохол')
+    ALC.forEach(n => { if (!has(n)) list.push({ name: n, group: p.group || '', parent: p.name }) })
+    save(list)
+  }
+
+  function move(c, d) {
+    const sibs = sibsOf(c)
+    const o = sibs[sibs.findIndex(x => x.name === c.name) + d]
+    if (!o) return
     const l = [...catObjs]
-    ;[l[i], l[i + d]] = [l[i + d], l[i]]
+    const a = l.findIndex(x => x.name === c.name), b = l.findIndex(x => x.name === o.name)
+    ;[l[a], l[b]] = [l[b], l[a]]
     save(l)
   }
 
   function remove(c) {
+    if (kidsOf(c.name).length) return alert('Тази категория има подкатегории. Първо ги изтрий или ги премести.')
     if (items.some(i => i.category === c.name)) return alert('В тази категория има ястия. Първо ги изтрий или им смени категорията.')
     save(catObjs.filter(x => x.name !== c.name))
   }
 
-  function regroup(i, value) {
+  function regroup(c, value) {
     let g = value
     if (value === '__new') {
       g = (prompt('Име на новото меню, напр. Зимно меню') || '').trim()
       if (!g) return
     }
-    save(catObjs.map((c, k) => (k === i ? { ...c, group: g } : c)))
+    save(catObjs.map(x => (x.name === c.name || x.parent === c.name ? { ...x, group: g } : x)))
+  }
+
+  function reparent(c, value) {
+    const p = catObjs.find(x => x.name === value)
+    save(catObjs.map(x => (x.name === c.name ? { ...x, parent: value, group: p ? p.group : x.group } : x)))
   }
 
   const left = SUGGEST.filter(s => !catObjs.some(c => c.name === s))
+  const alcLeft = !catObjs.some(c => c.name.toLowerCase() === 'алкохол') || ALC.some(n => !catObjs.some(c => c.name.toLowerCase() === n.toLowerCase()))
+
+  const row = c => {
+    const sibs = sibsOf(c)
+    const k = sibs.findIndex(x => x.name === c.name)
+    const kids = kidsOf(c.name)
+    return (
+      <div className={`item${isChild(c) ? ' sub' : ''}`} key={c.name}>
+        <div className="grow">
+          <strong>{c.name}</strong> <span className="muted">{items.filter(x => x.category === c.name).length} ястия{kids.length ? ` · ${kids.length} подкатегории` : ''}</span>
+          {!isChild(c) && (
+            <select className="mini" value={c.group} onChange={e => regroup(c, e.target.value)} aria-label="Меню">
+              <option value="">Без отделно меню</option>
+              {groups.map(g => <option key={g} value={g}>{g}</option>)}
+              <option value="__new">+ Ново меню…</option>
+            </select>
+          )}
+          {kids.length === 0 && (
+            <select className="mini" value={isChild(c) ? c.parent : ''} onChange={e => reparent(c, e.target.value)} aria-label="Подкатегория на">
+              <option value="">Основна категория</option>
+              {tops.filter(t => t.name !== c.name).map(t => <option key={t.name} value={t.name}>Подкатегория на: {t.name}</option>)}
+            </select>
+          )}
+        </div>
+        <div className="actions">
+          <button className="link" disabled={k === 0} onClick={() => move(c, -1)} aria-label="Нагоре">↑</button>
+          <button className="link" disabled={k === sibs.length - 1} onClick={() => move(c, 1)} aria-label="Надолу">↓</button>
+          <button className="link danger" onClick={() => remove(c)}>Изтрий</button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
       <div className="stack card">
         <h2>Добави категория</h2>
-        <label>Меню (по желание)
-          <input list="groups" value={group} onChange={e => setGroup(e.target.value)} placeholder="Напр. Зимно меню. Остави празно, ако няма отделни менюта." />
+        {alcLeft && (
+          <div>
+            <p className="muted">Готов пример с подкатегории: Алкохол → Бира, Вино, Водка, Уиски…</p>
+            <div className="chips"><button type="button" className="chip" onClick={addAlcohol}>+ Алкохол с подкатегории</button></div>
+          </div>
+        )}
+        <label>Подкатегория на (по желание)
+          <select value={par} onChange={e => setParent(e.target.value)}>
+            <option value="">Не, това е основна категория</option>
+            {tops.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
+          </select>
         </label>
+        {!par && (
+          <label>Меню (по желание)
+            <input list="groups" value={group} onChange={e => setGroup(e.target.value)} placeholder="Напр. Зимно меню. Остави празно, ако няма отделни менюта." />
+          </label>
+        )}
         <datalist id="groups">{groups.map(g => <option key={g} value={g} />)}</datalist>
-        {left.length > 0 && (
+        {!par && left.length > 0 && (
           <>
             <p className="muted">Натисни, за да добавиш с един клик:</p>
             <div className="chips">{left.map(s => <button key={s} type="button" className="chip" onClick={() => add(s)}>+ {s}</button>)}</div>
           </>
         )}
         <form className="inline" onSubmit={e => { e.preventDefault(); add(name); setName('') }}>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Или напиши своя, напр. Мезета" />
+          <input value={name} onChange={e => setName(e.target.value)} placeholder={par ? `Подкатегория на ${par}, напр. Бира` : 'Или напиши своя, напр. Мезета'} />
           <button>Добави</button>
         </form>
         {msg && <p className="err">{msg}</p>}
@@ -315,21 +423,10 @@ function Categories({ docRef, catObjs, items }) {
 
       <h2>Категории ({catObjs.length})</h2>
       {catObjs.length === 0 && <p className="muted">Още няма категории.</p>}
-      {catObjs.map((c, i) => (
-        <div className="item" key={c.name}>
-          <div className="grow">
-            <strong>{c.name}</strong> <span className="muted">{items.filter(x => x.category === c.name).length} ястия</span>
-            <select className="mini" value={c.group} onChange={e => regroup(i, e.target.value)} aria-label="Меню">
-              <option value="">Без отделно меню</option>
-              {groups.map(g => <option key={g} value={g}>{g}</option>)}
-              <option value="__new">+ Ново меню…</option>
-            </select>
-          </div>
-          <div className="actions">
-            <button className="link" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Нагоре">↑</button>
-            <button className="link" disabled={i === catObjs.length - 1} onClick={() => move(i, 1)} aria-label="Надолу">↓</button>
-            <button className="link danger" onClick={() => remove(c)}>Изтрий</button>
-          </div>
+      {tops.map(t => (
+        <div key={t.name}>
+          {row(t)}
+          {kidsOf(t.name).map(row)}
         </div>
       ))}
     </>

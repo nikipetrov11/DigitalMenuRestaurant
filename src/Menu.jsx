@@ -5,7 +5,7 @@ import { db } from './firebase'
 
 const byName = (a, b) => a.name.localeCompare(b.name, 'bg')
 const catOf = i => i.category || 'Меню'
-const norm = c => (typeof c === 'string' ? { name: c, group: '' } : { name: c.name, group: c.group || '' })
+const norm = c => (typeof c === 'string' ? { name: c, group: '', parent: '' } : { name: c.name, group: c.group || '', parent: c.parent || '' })
 const slidesOf = r => (r?.slides?.length ? r.slides : r?.cover ? [r.cover] : [])
 
 // тъмен или светъл текст върху избрания цвят
@@ -32,6 +32,7 @@ export default function Menu() {
   const [items, setItems] = useState([])
   const [gActive, setGActive] = useState(null)
   const [cActive, setCActive] = useState(null)
+  const [sActive, setSActive] = useState(null)
   const [openId, setOpenId] = useState(null)
   const [slide, setSlide] = useState(0)
   const [info, setInfo] = useState(false)
@@ -65,19 +66,31 @@ export default function Menu() {
   const link = u => (/^https?:\/\//i.test(u) ? u : `https://${u}`)
 
   const all = (rest.categories || []).map(norm)
-  items.forEach(i => { if (!all.some(c => c.name === catOf(i))) all.push({ name: catOf(i), group: '' }) })
-  const cats = all.filter(c => items.some(i => catOf(i) === c.name))
-  const groups = [...new Set(cats.map(c => c.group))]
+  items.forEach(i => { if (!all.some(c => c.name === catOf(i))) all.push({ name: catOf(i), group: '', parent: '' }) })
+  const has = n => items.some(i => catOf(i) === n)
+  const kids = n => all.filter(c => c.parent === n)
+  const isTop = c => !c.parent || !all.some(p => p.name === c.parent)
+  // основни категории (с ястия в тях или в подкатегориите им)
+  const tops = all.filter(c => isTop(c) && (has(c.name) || kids(c.name).some(k => has(k.name))))
+  const groups = [...new Set(tops.map(c => c.group))]
   const group = groups.includes(gActive) ? gActive : groups[0]
-  const inGroup = cats.filter(c => c.group === group)
+  const inGroup = tops.filter(c => c.group === group)
   const cat = inGroup.find(c => c.name === cActive)?.name || inGroup[0]?.name
-  const shown = items.filter(i => catOf(i) === cat).sort(byName)
+  // подкатегории на избраната категория
+  const subs = cat ? kids(cat).filter(k => has(k.name)).map(k => ({ name: k.name, label: k.name })) : []
+  if (subs.length && has(cat)) subs.push({ name: cat, label: 'Други' })
+  const sub = subs.find(x => x.name === sActive) || subs[0]
+  const current = subs.length ? sub.name : cat
+  const title = subs.length && sub.name !== cat ? sub.name : cat
+  const shown = items.filter(i => catOf(i) === current).sort(byName)
   const featured = items.filter(i => i.featured)
 
   function goTo(i) {
     const c = all.find(x => x.name === catOf(i))
-    setGActive(c ? c.group : '')
-    setCActive(catOf(i))
+    const top = (c && c.parent && all.find(x => x.name === c.parent)) || c
+    setGActive(top ? top.group : '')
+    setCActive(top ? top.name : catOf(i))
+    setSActive(catOf(i))
     setOpenId(i.id)
     setTimeout(() => document.getElementById('list')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
   }
@@ -105,10 +118,16 @@ export default function Menu() {
               {!rest.hideName && <h1 className="idname">{rest.name}</h1>}
               {rest.tagline && <p className="tagline">{rest.tagline}</p>}
             </div>
-            {hasInfo && (
-              <button type="button" className="infobtn" aria-expanded={info} onClick={() => setInfo(!info)}>Информация</button>
-            )}
           </div>
+
+          {(status || hasInfo) && (
+            <div className="meta">
+              {status ? <div className={`status${status.open ? '' : ' closed'}`}><i />{status.text}</div> : <span />}
+              {hasInfo && (
+                <button type="button" className="infobtn" aria-expanded={info} onClick={() => setInfo(!info)}>Информация</button>
+              )}
+            </div>
+          )}
 
           {info && hasInfo && (
             <div className="infopanel">
@@ -152,7 +171,6 @@ export default function Menu() {
             </div>
           )}
 
-          {status && <div className={`status${status.open ? '' : ' closed'}`}><i />{status.text}</div>}
         </header>
 
         {featured.length > 0 && (
@@ -177,14 +195,21 @@ export default function Menu() {
             {groups.length > 1 && (
               <nav className="gtabs" aria-label="Менюта">
                 {groups.map(g => (
-                  <button key={g} aria-pressed={g === group} onClick={() => { setGActive(g); setCActive(null) }}>{g || 'Меню'}</button>
+                  <button key={g} aria-pressed={g === group} onClick={() => { setGActive(g); setCActive(null); setSActive(null) }}>{g || 'Меню'}</button>
                 ))}
               </nav>
             )}
             {inGroup.length > 0 && (
               <nav className="pills" aria-label="Категории">
                 {inGroup.map(c => (
-                  <button key={c.name} aria-pressed={c.name === cat} onClick={() => setCActive(c.name)}>{c.name}</button>
+                  <button key={c.name} aria-pressed={c.name === cat} onClick={() => { setCActive(c.name); setSActive(null) }}>{c.name}</button>
+                ))}
+              </nav>
+            )}
+            {subs.length > 0 && (
+              <nav className="subpills" aria-label="Подкатегории">
+                {subs.map(x => (
+                  <button key={x.name} aria-pressed={x.name === sub.name} onClick={() => setSActive(x.name)}>{x.label}</button>
                 ))}
               </nav>
             )}
@@ -192,11 +217,11 @@ export default function Menu() {
         )}
 
         <main className="sec" id="list">
-          {cats.length === 0 && <p className="empty">Менюто още е празно.</p>}
+          {tops.length === 0 && <p className="empty">Менюто още е празно.</p>}
           {cat && (
             <>
-              <h2>{cat} <small>{shown.length} {shown.length === 1 ? 'продукт' : 'продукта'}</small></h2>
-              <div className="list" key={cat}>
+              <h2>{title} <small>{shown.length} {shown.length === 1 ? 'продукт' : 'продукта'}</small></h2>
+              <div className="list" key={current}>
                 {shown.map(i => (
                   <button type="button" key={i.id}
                     className={`dish${openId === i.id ? ' open' : ''}${i.soldOut ? ' out' : ''}`}
