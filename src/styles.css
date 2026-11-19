@@ -237,3 +237,16 @@ img.hero-logo { display: block; max-width: 100%; max-height: 64px; object-fit: c
 .idrow > .infobtn { align-self: flex-start; margin-top: 56px; }
 header > .status { margin: 12px 20px 0; }
 .meta .status { margin: 0; }
+
+/* два равни бутона: час на затваряне + Информация */
+.meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: stretch; }
+.meta > span:empty { display: none; }
+.meta > :only-child { grid-column: 1 / -1; }
+.meta .status, .meta .infobtn { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; margin: 0; padding: 10px 14px; color: #161616; font-size: .88rem; font-weight: 700; line-height: 1.2; text-align: center;
+  background: rgba(255,255,255,.9); border: 1px solid rgba(255,255,255,.95); border-radius: 99px; box-shadow: 0 4px 14px rgba(40,30,10,.10); }
+.meta .infobtn[aria-expanded=true] { color: var(--on-accent); background: var(--accent); }
+
+/* по-модерна лента с категориите: без твърда линия, меко затъмнение отдолу */
+.sticky { background: linear-gradient(180deg, rgba(251,247,240,.94), rgba(247,241,231,.82)); border-bottom: 0; -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2); }
+.sticky::after { content: ''; position: absolute; top: 100%; right: 0; left: 0; height: 22px; background: linear-gradient(180deg, rgba(40,30,10,.09), transparent); pointer-events: none; }
+.pills, .subpills { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); }
