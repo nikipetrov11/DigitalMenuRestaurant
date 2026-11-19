@@ -232,3 +232,8 @@ img.hero-logo { display: block; max-width: 100%; max-height: 64px; object-fit: c
 .cat-body > .item:last-child { border-bottom: 0; }
 .sub { padding-left: 18px; }
 .sub-tag { color: var(--muted); font-size: .8rem; font-weight: 500; }
+
+/* съвместимост: ако Menu.jsx още е старият, подредбата пак е читава */
+.idrow > .infobtn { align-self: flex-start; margin-top: 56px; }
+header > .status { margin: 12px 20px 0; }
+.meta .status { margin: 0; }
