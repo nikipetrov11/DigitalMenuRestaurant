@@ -39,6 +39,7 @@ export default function Menu() {
   const [info, setInfo] = useState(false)
   const [showPass, setShowPass] = useState(false)
   const [wColor, setWColor] = useState('')
+  const [wMode, setWMode] = useState('bottle')
 
   useEffect(() => {
     const offRest = onSnapshot(doc(db, 'restaurants', slug), s => setRest(s.exists() ? s.data() : null))
@@ -88,19 +89,24 @@ export default function Menu() {
   const shown = items.filter(i => catOf(i) === current).sort(byName)
   const featured = items.filter(i => i.featured)
 
-  // винена карта: филтър по цвят и групиране по вкус (сухо, полусухо...)
+  // винена карта: бутилки / на чаша, филтър по цвят и групиране по вкус
   const isWine = shown.some(i => i.wineColor || i.taste)
-  const wColors = WINE_COLORS.filter(([k]) => shown.some(i => i.wineColor === k))
+  const hasGlass = i => i.glassPrice !== undefined && i.glassPrice !== null && i.glassPrice !== ''
+  const anyGlass = isWine && shown.some(hasGlass)
+  const mode = anyGlass && wMode === 'glass' ? 'glass' : 'bottle'
+  const byMode = isWine && mode === 'glass' ? shown.filter(hasGlass) : shown
+  const wColors = WINE_COLORS.filter(([k]) => byMode.some(i => i.wineColor === k))
   const wc = wColors.some(([k]) => k === wColor) ? wColor : ''
-  const view = isWine && wc ? shown.filter(i => i.wineColor === wc) : shown
+  const view = isWine && wc ? byMode.filter(i => i.wineColor === wc) : byMode
   const blocks = isWine
     ? [
         ...WINE_TASTES.map(([k, l]) => [l, view.filter(i => i.taste === k)]),
         ['Други', view.filter(i => !WINE_TASTES.some(([k]) => k === i.taste))],
       ].filter(b => b[1].length)
     : [['', view]]
-  const hasGlass = i => i.glassPrice !== undefined && i.glassPrice !== null && i.glassPrice !== ''
-  const wmeta = i => [i.grape, i.region, i.year, i.volume && `${i.volume} мл`, hasGlass(i) && `чаша ${Number(i.glassPrice).toFixed(2)} ${cur}`].filter(Boolean).join(' · ')
+  const count = isWine ? view.length : shown.length
+  const glassMoney = i => `${Number(i.glassPrice).toFixed(2)} ${cur}`
+  const wmeta = i => [i.grape, i.region, i.year, i.volume && `${i.volume} мл`].filter(Boolean).join(' · ')
 
   const dish = i => (
     <button type="button" key={i.id}
@@ -113,7 +119,10 @@ export default function Menu() {
         {i.desc && <p>{i.desc}</p>}
         {i.soldOut && <em className="tag">изчерпано</em>}
       </div>
-      <span className="price">{money(i)}</span>
+      <span className="price">
+        {isWine && mode === 'glass' ? glassMoney(i) : money(i)}
+        {isWine && mode === 'bottle' && hasGlass(i) && <small className="gl">чаша {glassMoney(i)}</small>}
+      </span>
     </button>
   )
 
@@ -252,8 +261,14 @@ export default function Menu() {
           {tops.length === 0 && <p className="empty">Менюто още е празно.</p>}
           {cat && (
             <>
-              <h2>{title} <small>{shown.length} {shown.length === 1 ? 'продукт' : 'продукта'}</small></h2>
-              {isWine && wColors.length > 1 && (
+              <h2>{title} <small>{count} {count === 1 ? 'продукт' : 'продукта'}</small></h2>
+              {anyGlass && (
+                <nav className="wmode" aria-label="Бутилки или чаши">
+                  <button type="button" aria-pressed={mode === 'bottle'} onClick={() => setWMode('bottle')}>Бутилки</button>
+                  <button type="button" aria-pressed={mode === 'glass'} onClick={() => setWMode('glass')}>На чаша</button>
+                </nav>
+              )}
+              {isWine && wColors.length > 0 && (
                 <nav className="wfilter" aria-label="Вид вино">
                   <button type="button" aria-pressed={!wc} onClick={() => setWColor('')}>Всички</button>
                   {wColors.map(([k, l]) => (

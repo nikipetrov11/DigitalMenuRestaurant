@@ -84,6 +84,11 @@ function Dashboard({ slug }) {
   const catObjs = (rest.categories || []).map(c => (typeof c === 'string' ? { name: c, group: '', parent: '' } : { name: c.name, group: c.group || '', parent: c.parent || '' }))
   items.forEach(i => { if (i.category && !catObjs.some(c => c.name === i.category)) catObjs.push({ name: i.category, group: '', parent: '' }) })
 
+  const drinks = rest.drinksOnly ?? /casa\s*noma/i.test(rest.name || '')
+  const W = drinks
+    ? { tab: 'Напитки', add: 'Добави напитка', edit: 'Редакция на напитка', list: 'Напитки', search: 'Търси напитка по име…', none: 'Още няма добавени напитки. Попълни формата по-горе.', of: 'напитки' }
+    : { tab: 'Ястия', add: 'Добави ястие', edit: 'Редакция на ястие', list: 'Ястия', search: 'Търси ястие по име…', none: 'Още няма добавени ястия. Попълни формата по-горе.', of: 'ястия' }
+
   return (
     <>
       <div className="head">
@@ -91,19 +96,19 @@ function Dashboard({ slug }) {
         <a className="btn" href={`/${slug}`} target="_blank" rel="noreferrer">Виж менюто</a>
       </div>
       <div className="tabs">
-        {[['items', 'Ястия'], ['cats', 'Категории'], ['look', 'Външен вид'], ['qr', 'QR код']].map(([k, t]) => (
+        {[['items', W.tab], ['cats', 'Категории'], ['look', 'Външен вид'], ['qr', 'QR код']].map(([k, t]) => (
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t}</button>
         ))}
       </div>
-      {tab === 'items' && <Dishes docRef={docRef} col={col} items={items} catObjs={catObjs} cur={rest.currency || '€'} />}
-      {tab === 'cats' && <Categories docRef={docRef} catObjs={catObjs} items={items} />}
+      {tab === 'items' && <Dishes docRef={docRef} col={col} items={items} catObjs={catObjs} cur={rest.currency || '€'} W={W} />}
+      {tab === 'cats' && <Categories docRef={docRef} catObjs={catObjs} items={items} W={W} />}
       {tab === 'look' && <Look docRef={docRef} rest={rest} />}
       {tab === 'qr' && <QrTab slug={slug} name={rest.name} />}
     </>
   )
 }
 
-function Dishes({ docRef, col, items, catObjs, cur }) {
+function Dishes({ docRef, col, items, catObjs, cur, W }) {
   const cats = catObjs.map(c => c.name)
   const empty = { name: '', price: '', category: '', newCat: '', desc: '', photo: '', featured: false, wineColor: '', taste: '', grape: '', region: '', year: '', volume: '', glass: '' }
   const [f, setF] = useState(empty)
@@ -191,7 +196,7 @@ function Dishes({ docRef, col, items, catObjs, cur }) {
   return (
     <>
       <form onSubmit={save} className="stack card">
-        <h2>{editId ? 'Редакция на ястие' : 'Добави ястие'}</h2>
+        <h2>{editId ? W.edit : W.add}</h2>
 
         <label className="upload">
           {f.photo ? <img src={f.photo} alt="" /> : <span>Натисни, за да добавиш снимка</span>}
@@ -250,10 +255,10 @@ function Dishes({ docRef, col, items, catObjs, cur }) {
         {msg && <p className={msg.startsWith('Запазено') ? 'ok' : 'err'}>{msg}</p>}
       </form>
 
-      <h2>Ястия ({items.length})</h2>
-      {items.length > 0 && <input className="search" type="search" placeholder="Търси ястие по име…" value={q} onChange={e => setQ(e.target.value)} />}
-      {items.length === 0 && <p className="muted">Още няма добавени ястия. Попълни формата по-горе.</p>}
-      {term && items.length > 0 && !items.some(matches) && <p className="muted">Няма намерени ястия.</p>}
+      <h2>{W.list} ({items.length})</h2>
+      {items.length > 0 && <input className="search" type="search" placeholder={W.search} value={q} onChange={e => setQ(e.target.value)} />}
+      {items.length === 0 && <p className="muted">{W.none}</p>}
+      {term && items.length > 0 && !items.some(matches) && <p className="muted">Няма намерени {W.of}.</p>}
 
       {tops.map(c => {
         const total = totalOf(c)
@@ -283,7 +288,7 @@ function Dishes({ docRef, col, items, catObjs, cur }) {
   )
 }
 
-function Categories({ docRef, catObjs, items }) {
+function Categories({ docRef, catObjs, items, W }) {
   const [name, setName] = useState('')
   const [group, setGroup] = useState('')
   const [parent, setParent] = useState('')
@@ -342,7 +347,7 @@ function Categories({ docRef, catObjs, items }) {
 
   function remove(c) {
     if (kidsOf(c.name).length) return alert('Тази категория има подкатегории. Първо ги изтрий или ги премести.')
-    if (items.some(i => i.category === c.name)) return alert('В тази категория има ястия. Първо ги изтрий или им смени категорията.')
+    if (items.some(i => i.category === c.name)) return alert(`В тази категория има ${W.of}. Първо ги изтрий или им смени категорията.`)
     save(catObjs.filter(x => x.name !== c.name))
   }
 
@@ -370,7 +375,7 @@ function Categories({ docRef, catObjs, items }) {
     return (
       <div className={`item${isChild(c) ? ' sub' : ''}`} key={c.name}>
         <div className="grow">
-          <strong>{c.name}</strong> <span className="muted">{items.filter(x => x.category === c.name).length} ястия{kids.length ? ` · ${kids.length} подкатегории` : ''}</span>
+          <strong>{c.name}</strong> <span className="muted">{items.filter(x => x.category === c.name).length} {W.of}{kids.length ? ` · ${kids.length} подкатегории` : ''}</span>
           {!isChild(c) && (
             <select className="mini" value={c.group} onChange={e => regroup(c, e.target.value)} aria-label="Меню">
               <option value="">Без отделно меню</option>
@@ -451,7 +456,7 @@ function Look({ docRef, rest }) {
   const [v, setV] = useState({
     name: rest.name, theme: rest.theme || 'classic', hideName: !!rest.hideName, color: rest.color || '#e9b45c', currency: rest.currency || '€',
     logo: rest.logo || '', logoBg: rest.logoBg || 'dark', logoShape: rest.logoShape || 'circle', opens: rest.opens || '', closes: rest.closes || '',
-    tagline: rest.tagline || '', wifi: rest.wifi || '', wifiPass: rest.wifiPass || '',
+    drinksOnly: rest.drinksOnly ?? /casa\s*noma/i.test(rest.name || ''), tagline: rest.tagline || '', wifi: rest.wifi || '', wifiPass: rest.wifiPass || '',
     address: rest.address || '', phone: rest.phone || '', facebook: rest.facebook || '', google: rest.google || '',
     slides: rest.slides?.length ? rest.slides : rest.cover ? [rest.cover] : [],
   })
@@ -484,6 +489,8 @@ function Look({ docRef, rest }) {
       <h2>Външен вид</h2>
       <label>Име на заведението <input value={v.name} onChange={e => setV({ ...v, name: e.target.value })} required /></label>
       <label className="check"><input type="checkbox" checked={v.hideName} onChange={e => setV({ ...v, hideName: e.target.checked })} /> Скрий името до логото (ако логото вече го съдържа)</label>
+
+      <label className="check"><input type="checkbox" checked={v.drinksOnly} onChange={e => setV({ ...v, drinksOnly: e.target.checked })} /> Само напитки (в панела пише „напитки“ вместо „ястия“)</label>
 
       <div>
         <strong>Стил на менюто</strong>
