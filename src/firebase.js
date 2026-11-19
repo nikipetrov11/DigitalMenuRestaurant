@@ -3,10 +3,12 @@ import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
 const app = initializeApp({
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: 'AIzaSyAt0j4uH-0894fc8lEnLvFfk9kVnvjOP_k',
+  authDomain: 'menuto-a160e.firebaseapp.com',
+  projectId: 'menuto-a160e',
+  storageBucket: 'menuto-a160e.firebasestorage.app',
+  messagingSenderId: '1078989322979',
+  appId: '1:1078989322979:web:7a95e2412a699c52d063d6',
 })
 
 export const auth = getAuth(app)
