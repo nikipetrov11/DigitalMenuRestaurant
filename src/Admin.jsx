@@ -483,6 +483,7 @@ function Look({ docRef, rest }) {
     drinksOnly: rest.drinksOnly ?? /casa\s*noma/i.test(rest.name || ''), tagline: rest.tagline || '', wifi: rest.wifi || '', wifiPass: rest.wifiPass || '',
     address: rest.address || '', phone: rest.phone || '', facebook: rest.facebook || '', google: rest.google || '',
     hideStatus: !!rest.hideStatus, coverIdentity: rest.coverIdentity ?? isCasa(rest), instagram: rest.instagram ?? (isCasa(rest) ? CASA_IG : ''), hideInfo: rest.hideInfo ?? isCasa(rest),
+    hideLogo: !!rest.hideLogo, hideIg: !!rest.hideIg, hideTagline: !!rest.hideTagline, igOnImage: !!rest.igOnImage,
     slides: rest.slides?.length ? rest.slides : rest.cover ? [rest.cover] : [],
   })
   const [msg, setMsg] = useState('')
@@ -597,6 +598,10 @@ function Look({ docRef, rest }) {
         <strong>Instagram</strong>
         <label>Instagram профил (линк) <input value={v.instagram} onChange={e => setV({ ...v, instagram: e.target.value })} placeholder="https://www.instagram.com/..." /></label>
         <p className="muted" style={{ margin: 0 }}>Показва се като иконка вдясно от името. Остави празно, за да не се показва.</p>
+        <label className="check"><input type="checkbox" checked={v.hideLogo} onChange={e => setV({ ...v, hideLogo: e.target.checked })} /> Скрий кръглото лого</label>
+        <label className="check"><input type="checkbox" checked={v.hideIg} onChange={e => setV({ ...v, hideIg: e.target.checked })} /> Скрий Instagram иконата до името</label>
+        <label className="check"><input type="checkbox" checked={v.hideTagline} onChange={e => setV({ ...v, hideTagline: e.target.checked })} /> Скрий приветствието („Добре дошли“) върху банера</label>
+        <label className="check"><input type="checkbox" checked={v.igOnImage} onChange={e => setV({ ...v, igOnImage: e.target.checked })} /> Instagram бутонът е този от снимката (натиска се директно върху нея)</label>
         <label className="check"><input type="checkbox" checked={v.hideInfo} onChange={e => setV({ ...v, hideInfo: e.target.checked })} /> Скрий бутона „Информация“ в менюто</label>
       </div>
 

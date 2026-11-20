@@ -580,3 +580,31 @@ header > .status { margin: 12px 20px 0; }
 .cover.ov .status.cov { bottom: 5.5%; gap: .8em; padding: .85em 1.7em; font-size: clamp(9.5px, 2.6vw, 12px); background: rgba(28, 27, 27, .78); }
 .status.cov .sp { flex: none; width: 4px; height: 4px; background: #2fb36d; border-radius: 50%; }
 .status.cov.closed .sp { background: #d0463b; }
+
+/* ===== Банер: без лого/иконка/приветствие, Instagram върху снимката, красив статус ===== */
+.idrow.noav { margin-top: 14px; }
+.idrow.noav .idtext { margin-top: 0; }
+.cover.ov .idrow.noav { margin: 0; }
+
+/* Прозрачна зона върху „Instagram“ реда, който е вграден в снимката на банера */
+.cover .ighot { position: absolute; z-index: 4; top: 58%; left: 6.5%; width: 46%; height: 10%; border-radius: 12px; -webkit-tap-highlight-color: transparent; transition: background .15s; }
+.cover .ighot:active { background: rgba(210, 179, 110, .22); }
+.cover .ighot:focus-visible { outline: 2px solid #d2b36e; outline-offset: 2px; }
+
+/* Статус „Отворено / Затворено · отваря в“ */
+@keyframes statusPulse { 0%, 100% { box-shadow: 0 0 0 0 var(--glow), 0 0 10px var(--glow); } 50% { box-shadow: 0 0 0 5px transparent, 0 0 14px var(--glow); } }
+.cover.ov .status.cov {
+  --dot: #3ccf86; --glow: rgba(60, 207, 134, .65);
+  bottom: 5%; gap: .85em; padding: .8em 1.5em .8em 1.2em; border-radius: 99px;
+  color: #efe7d6; font-size: clamp(10px, 2.8vw, 12.5px); letter-spacing: .1em; text-transform: uppercase;
+  background: linear-gradient(180deg, rgba(40, 35, 29, .84), rgba(12, 10, 8, .9));
+  border: 1px solid rgba(210, 179, 110, .42);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+.cover.ov .status.cov.closed { --dot: #e2584d; --glow: rgba(226, 88, 77, .6); }
+.cover.ov .status.cov i { flex: none; width: .72em; height: .72em; background: var(--dot); border-radius: 50%; animation: statusPulse 2.4s ease-in-out infinite; }
+.cover.ov .status.cov b { font-weight: 800; letter-spacing: .16em; color: #f6eedb; }
+.cover.ov .status.cov .sp { flex: none; width: 1px; height: 1.3em; background: rgba(210, 179, 110, .5); border-radius: 0; }
+.cover.ov .status.cov em { font-style: normal; font-weight: 600; letter-spacing: .08em; color: #c9ad6a; }
+.cover.ov .status.cov strong { margin-left: .2em; font-weight: 800; letter-spacing: .06em; color: #f3dfa6; }
+@media (prefers-reduced-motion: reduce) { .cover.ov .status.cov i { animation: none; } }

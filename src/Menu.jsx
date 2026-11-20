@@ -31,7 +31,9 @@ function openStatus(opens, closes) {
   const o = mins(opens), c = mins(closes)
   const d = new Date(), now = d.getHours() * 60 + d.getMinutes()
   const open = o <= c ? now >= o && now < c : now >= o || now < c
-  return open ? { open, text: `Отворено до ${closes}` } : { open, text: `Затворено · отваря в ${opens}` }
+  return open
+    ? { open, text: `Отворено до ${closes}`, label: 'Отворено', note: 'до', time: closes }
+    : { open, text: `Затворено · отваря в ${opens}`, label: 'Затворено', note: 'отваря в', time: opens }
 }
 
 export default function Menu() {
@@ -87,6 +89,9 @@ export default function Menu() {
   const link = u => (/^https?:\/\//i.test(u) ? u : `https://${u}`)
   const insta = rest.instagram ?? (isCasa(rest) ? CASA_IG : '')
   const ov = rest.coverIdentity ?? isCasa(rest) // лого, име и Instagram върху банера
+  const igOnImage = !!(rest.igOnImage && insta) // Instagram бутон върху самата снимка на банера
+  const showIg = !!insta && !rest.hideIg && !igOnImage
+  const showTag = !!rest.tagline && !rest.hideTagline
   const showInfoBtn = hasInfo && !(rest.hideInfo ?? isCasa(rest))
 
   const all = (rest.categories || []).map(norm)
@@ -202,15 +207,19 @@ export default function Menu() {
     setTimeout(() => document.getElementById('list')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
   }
 
-  const ident = (
-          <div className={`idrow${rest.logoShape === 'free' ? ' vert' : ''}`}>
-            <div className={`avatar${rest.logo ? ` ${rest.logoShape || 'circle'}${rest.logoBg === 'light' ? ' light' : ''}` : ' init'}`}>
-              {rest.logo ? <img src={rest.logo} alt={rest.name} /> : <span>{rest.name.trim().charAt(0).toUpperCase()}</span>}
-            </div>
+  const showAvatar = !rest.hideLogo
+  const identEmpty = !showAvatar && rest.hideName && !showIg && !showTag
+  const ident = identEmpty ? null : (
+          <div className={`idrow${rest.logoShape === 'free' ? ' vert' : ''}${showAvatar ? '' : ' noav'}`}>
+            {showAvatar && (
+              <div className={`avatar${rest.logo ? ` ${rest.logoShape || 'circle'}${rest.logoBg === 'light' ? ' light' : ''}` : ' init'}`}>
+                {rest.logo ? <img src={rest.logo} alt={rest.name} /> : <span>{rest.name.trim().charAt(0).toUpperCase()}</span>}
+              </div>
+            )}
             <div className="idtext">
               <div className="idline">
                 {!rest.hideName && <h1 className="idname">{rest.name}</h1>}
-                {insta && (
+                {showIg && (
                   <a className="igbtn" href={link(insta)} target="_blank" rel="noreferrer" aria-label="Instagram">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
@@ -219,11 +228,11 @@ export default function Menu() {
                     </svg>
                   </a>
                 )}
-                {insta && rest.hideName && rest.logoShape === 'free' && (
+                {showIg && rest.hideName && rest.logoShape === 'free' && (
                   <a className="iglabel" href={link(insta)} target="_blank" rel="noreferrer">{rest.name}</a>
                 )}
               </div>
-              {rest.tagline && <p className="tagline">{rest.tagline}</p>}
+              {showTag && <p className="tagline">{rest.tagline}</p>}
             </div>
           </div>
   )
@@ -232,9 +241,9 @@ export default function Menu() {
   const posterOn = ov && isCasa(rest)
   const poster = (
     <div className="poster">
-      <img className="plogo" src={casaLogo} alt={rest.name} />
+      {!rest.hideLogo && <img className="plogo" src={casaLogo} alt={rest.name} />}
       <div className="prow">
-        {insta && (
+        {showIg && (
           <a className="igrow" href={link(insta)} target="_blank" rel="noreferrer" aria-label={`Instagram ${rest.name}`}>
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
@@ -244,7 +253,7 @@ export default function Menu() {
             <span>{rest.name}</span>
           </a>
         )}
-        {rest.tagline && <p className="tagline">{rest.tagline}</p>}
+        {showTag && <p className="tagline">{rest.tagline}</p>}
       </div>
     </div>
   )
@@ -263,7 +272,12 @@ export default function Menu() {
               </>
             )}
             {ov && (posterOn ? poster : ident)}
-            {ov && status && <div className={`status cov${status.open ? '' : ' closed'}`}><i />{status.text.split(' · ')[0]}{status.text.includes(' · ') && <><span className="sp" />{status.text.split(' · ')[1]}</>}</div>}
+            {igOnImage && <a className="ighot" href={link(insta)} target="_blank" rel="noreferrer" aria-label={`Instagram ${rest.name}`} />}
+            {ov && status && (
+              <div className={`status cov${status.open ? '' : ' closed'}`}>
+                <i /><b>{status.label}</b><span className="sp" /><em>{status.note} <strong>{status.time}</strong></em>
+              </div>
+            )}
           </div>
 
           {!ov && ident}
