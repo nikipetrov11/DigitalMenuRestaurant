@@ -162,7 +162,7 @@ export default function Menu() {
   const colorLabel = k => WINE.colors[lang][k] || WINE_COLORS.find(([x]) => x === k)?.[1]
   const areaLabel = id => areaNameOf(wm.areas.find(a => a.id === id))
   const wline1 = (i, hideArea) => [colorLabel(i.wineColor), i.year, !hideArea && areaLabel(i.area)].filter(Boolean).join(' · ')
-  const wline2 = i => [i.grape, i.wineType, i.region].filter(Boolean).join(' · ')
+  const wline2 = i => [tx(lang, i.grape, i.i18n?.[lang]?.grape), tx(lang, i.wineType, i.i18n?.[lang]?.wineType), tx(lang, i.region, i.i18n?.[lang]?.region)].filter(Boolean).join(' · ')
   // цена на вино: на чаша (с мл) е основната, бутилката е по желание
   const wprice = (i, m) => {
     const g = hasGlass(i), b = hasBottle(i)

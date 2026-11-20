@@ -108,6 +108,7 @@ export const WINE = {
 // Попълва се ръчно тук; ако липсва превод, се показва оригиналът.
 // Пример: 'Салати': { en: 'Salads', de: 'Salate' }
 export const CONTENT = {
+  'Добре дошли': { en: 'Welcome', de: 'Willkommen' },
   'Меню': { en: 'Menu', de: 'Speisekarte' },
   'Вино': { en: 'Wine', de: 'Wein' },
   'Алкохол': { en: 'Spirits', de: 'Spirituosen' },
@@ -123,8 +124,19 @@ export const CONTENT = {
   'Коктейли': { en: 'Cocktails', de: 'Cocktails' },
 }
 
-// Ред на търсене: полета в базата (i18n.<lang>) -> речникът CONTENT -> оригинал
+// Кирилица -> латиница (опростена българска транслитерация)
+const LAT = { а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'ts',ч:'ch',ш:'sh',щ:'sht',ъ:'a',ь:'y',ю:'yu',я:'ya' }
+export const translit = s =>
+  (s || '').replace(/[А-Яа-я]/g, c => {
+    const l = LAT[c.toLowerCase()]
+    return c === c.toLowerCase() ? l : l[0].toUpperCase() + l.slice(1)
+  })
+
+const find = txt => CONTENT[txt] || CONTENT[(txt || '').trim().replace(/[!.]+$/, '')]
+
+// Ред на търсене: полета в базата (i18n.<lang>) -> речникът CONTENT -> латиница (за en/de) -> оригинал
 export function tx(lang, bgText, fromDb) {
   if (lang === 'bg' || !bgText) return bgText
-  return fromDb || CONTENT[bgText]?.[lang] || bgText
+  if (typeof bgText !== 'string') return bgText
+  return fromDb || find(bgText)?.[lang] || translit(bgText)
 }
