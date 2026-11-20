@@ -4,7 +4,6 @@ import { doc, collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from './firebase'
 import { WINE_COLORS, WINE_TASTES, CASA_IG, isCasa, isDrinksOnly } from './util'
 import { resolveMap, labelClass, pickArea } from './winemap'
-import casaLogo from './casa-noma-logo.png'
 
 const Bottle = ({ src }) => src ? <img src={src} alt="" aria-hidden="true" /> : (
   <svg viewBox="0 0 24 48" aria-hidden="true" focusable="false">
@@ -243,27 +242,6 @@ export default function Menu() {
           </div>
   )
 
-  // Casa Noma: банер като постер (лого, Instagram, „Добре дошли“) – 1:1 с образеца
-  const posterOn = ov && isCasa(rest)
-  const poster = (
-    <div className="poster">
-      {!hideLogo && <img className="plogo" src={casaLogo} alt={rest.name} />}
-      <div className="prow">
-        {showIg && (
-          <a className="igrow" href={link(insta)} target="_blank" rel="noreferrer" aria-label={`Instagram ${rest.name}`}>
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
-              <circle cx="12" cy="12" r="4" />
-              <circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" />
-            </svg>
-            <span>{rest.name}</span>
-          </a>
-        )}
-        {showTag && <p className="tagline">{rest.tagline}</p>}
-      </div>
-    </div>
-  )
-
   return (
     <div className={`page${rest.theme === 'luxury' ? ' luxe' : ''}`} style={{ '--accent': accent, '--on-accent': onAccent(accent) }}>
       <div className="shell">
@@ -277,7 +255,7 @@ export default function Menu() {
                 <div className="dots">{slides.map((_, k) => <i key={k} className={k === idx ? 'on' : ''} />)}</div>
               </>
             )}
-            {ov && (posterOn ? poster : ident)}
+            {ov && ident}
             {igOnImage && <a className="ighot" href={link(insta)} target="_blank" rel="noreferrer" aria-label={`Instagram ${rest.name}`} />}
             {ov && status && (
               <div className={`status cov${status.open ? '' : ' closed'}`}>
