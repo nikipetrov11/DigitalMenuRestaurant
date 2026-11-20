@@ -480,3 +480,7 @@ header > .status { margin: 12px 20px 0; }
 .luxe .igbtn { color: #f6eedb; }
 .igbtn:hover { color: var(--accent); }
 .idline { align-items: center; }
+
+/* ---- Име + приветствие: центрирани спрямо видимата част на логото (под банера) ---- */
+.idtext { align-self: stretch; display: flex; flex-direction: column; justify-content: center; margin-top: 46px; }
+.idtext .tagline { margin-top: 3px; }
