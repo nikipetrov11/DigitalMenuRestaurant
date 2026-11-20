@@ -670,10 +670,17 @@ function MapTab({ docRef, rest, items }) {
       setMsg('Снимката не се зареди.')
     }
   }
+  async function pickAreaBottle(id, e) {
+    const file = e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    try { setArea(id, { bottle: await fileToDataUrl(file, 160, 1, 'image/png') }) }
+    catch { setMsg('Снимката не се зареди.') }
+  }
   async function save(e) {
     e.preventDefault()
     setMsg('')
-    const areas = v.areas.map(a => ({ id: a.id, name: a.name.trim(), x: a.x, y: a.y, side: a.side || 'b' }))
+    const areas = v.areas.map(a => ({ id: a.id, name: a.name.trim(), x: a.x, y: a.y, side: a.side || 'b', bottle: a.bottle || '' }))
     if (areas.some(a => !a.name)) return setMsg('Всяка област трябва да има име.')
     const wineMap = { on: v.on, areas, image: v.image, ratio: v.ratio, bg: v.bg, bottle: v.bottle }
     if (JSON.stringify({ ...rest, wineMap }).length > 950000) return setMsg('Снимките са твърде тежки. Върни стандартната карта или фон.')
@@ -689,7 +696,7 @@ function MapTab({ docRef, rest, items }) {
     <form onSubmit={save} className="stack card">
       <h2>Карта на винените области</h2>
       <label className="check"><input type="checkbox" checked={v.on} onChange={e => setV({ ...v, on: e.target.checked })} /> Показвай картата във винената карта на менюто</label>
-      <p className="muted">Хвани бутилка и я дръпни върху желаната област. Така показваш къде са вината от нея. Във формата на всяко вино избираш областта му.</p>
+      <p className="muted">Хвани бутилка и я дръпни върху желаната област. Всяка област може да има своя бутилка (PNG). Така показваш къде са вината от нея. Във формата на всяко вино избираш областта му.</p>
 
       <div className="wmapedit" style={{ '--fon': `url("${v.bg || DEFAULT_BG}")`, '--accent': rest.color || '#e9b45c', '--on-accent': '#1a1a1a' }}>
         <div className="wmapbox">
@@ -703,7 +710,7 @@ function MapTab({ docRef, rest, items }) {
                 aria-label={a.name}
                 onPointerDown={e => { e.preventDefault(); setSel(a.id); drag.current = a.id; e.currentTarget.setPointerCapture(e.pointerId) }}
                 onClick={e => e.stopPropagation()}>
-                {v.bottle ? <img src={v.bottle} alt="" /> : (
+                {a.bottle || v.bottle ? <img src={a.bottle || v.bottle} alt="" /> : (
                   <svg viewBox="0 0 24 48" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9.5 1h5v3h-.8v9.5c0 2 4.3 3.6 4.3 9.5v21a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V23c0-5.900 4.300-7.500 4.300-9.500V4h-.8z" /></svg>
                 )}
                 <span className={`wlab ${labelClass(a)}`}><em>{a.name || '…'}</em></span>
@@ -723,6 +730,11 @@ function MapTab({ docRef, rest, items }) {
                 {SIDES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
               </select>
               <button type="button" className="link" onClick={ev => { ev.stopPropagation(); removeArea(a) }}>Махни</button>
+              <div className="abottle" onClick={ev => ev.stopPropagation()}>
+                {a.bottle ? <img src={a.bottle} alt="" /> : <span className="abph" />}
+                <label className="link">{a.bottle ? 'Смени бутилката' : 'Качи своя бутилка (PNG)'}<input type="file" accept="image/*" hidden onChange={e => pickAreaBottle(a.id, e)} /></label>
+                {a.bottle && <button type="button" className="link" onClick={() => setArea(a.id, { bottle: '' })}>Махни</button>}
+              </div>
             </div>
           ))}
           <div className="row2">
