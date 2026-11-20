@@ -4,6 +4,7 @@ import { doc, collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from './firebase'
 import { WINE_COLORS, WINE_TASTES, WINE_AREAS } from './util'
 import mapImg from './vino-karta.webp'
+import fonImg from './vino-fon.webp'
 
 const Bottle = () => (
   <svg viewBox="0 0 24 48" aria-hidden="true" focusable="false">
@@ -274,7 +275,7 @@ export default function Menu() {
             <>
               <h2>{title} <small>{count} {count === 1 ? 'продукт' : 'продукта'}</small></h2>
               {isWine && (
-                <div className="wmapbox">
+                <div className="wmapbox" style={{ '--fon': `url(${fonImg})` }}>
                   <div className="wmap">
                     <img src={mapImg} alt="Карта на винените райони на България" />
                     {WINE_AREAS.map(a => {

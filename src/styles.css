@@ -356,3 +356,8 @@ header > .status { margin: 12px 20px 0; }
 .bt { flex: none; display: grid; place-items: center; width: 44px; height: 76px; color: #7a1f2b; }
 .bt svg { height: 100%; width: auto; }
 .bt.white { color: #d9c36a; } .bt.rose { color: #e08a9a; } .bt.sparkling { color: #cdb985; } .bt.orange { color: #d9822b; }
+
+/* блед фон зад картата */
+.wmapbox { position: relative; isolation: isolate; padding: 18px 0 8px; }
+.wmapbox::before { content: ""; position: absolute; inset: 0 -14px; z-index: -1; background: var(--fon) center / cover no-repeat; opacity: .32; pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 78%, transparent); mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 78%, transparent); }
