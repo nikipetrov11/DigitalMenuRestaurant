@@ -2,8 +2,14 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { doc, collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from './firebase'
-import { WINE_COLORS, WINE_TASTES } from './util'
+import { WINE_COLORS, WINE_TASTES, WINE_AREAS } from './util'
+import mapImg from './vino-karta.webp'
 
+const Bottle = () => (
+  <svg viewBox="0 0 24 48" aria-hidden="true" focusable="false">
+    <path fill="currentColor" d="M9.5 1h5v3h-.8v9.5c0 2 4.3 3.6 4.3 9.5v21a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V23c0-5.900 4.300-7.500 4.300-9.500V4h-.8z" />
+  </svg>
+)
 const byName = (a, b) => a.name.localeCompare(b.name, 'bg')
 const catOf = i => i.category || 'Меню'
 const norm = c => (typeof c === 'string' ? { name: c, group: '', parent: '' } : { name: c.name, group: c.group || '', parent: c.parent || '' })
@@ -40,6 +46,7 @@ export default function Menu() {
   const [showPass, setShowPass] = useState(false)
   const [wColor, setWColor] = useState('')
   const [wMode, setWMode] = useState('bottle')
+  const [wArea, setWArea] = useState('')
 
   useEffect(() => {
     const offRest = onSnapshot(doc(db, 'restaurants', slug), s => setRest(s.exists() ? s.data() : null))
@@ -94,7 +101,11 @@ export default function Menu() {
   const hasGlass = i => i.glassPrice !== undefined && i.glassPrice !== null && i.glassPrice !== ''
   const anyGlass = isWine && shown.some(hasGlass)
   const mode = anyGlass && wMode === 'glass' ? 'glass' : 'bottle'
-  const byMode = isWine && mode === 'glass' ? shown.filter(hasGlass) : shown
+  const areaCount = k => shown.filter(i => i.area === k).length
+  const area = isWine && wArea && areaCount(wArea) ? wArea : ''
+  const areaName = WINE_AREAS.find(a => a.id === area)?.name
+  const byArea = area ? shown.filter(i => i.area === area) : shown
+  const byMode = isWine && mode === 'glass' ? byArea.filter(hasGlass) : byArea
   const wColors = WINE_COLORS.filter(([k]) => byMode.some(i => i.wineColor === k))
   const wc = wColors.some(([k]) => k === wColor) ? wColor : ''
   const view = isWine && wc ? byMode.filter(i => i.wineColor === wc) : byMode
@@ -112,7 +123,7 @@ export default function Menu() {
     <button type="button" key={i.id}
       className={`dish${openId === i.id ? ' open' : ''}${i.soldOut ? ' out' : ''}`}
       onClick={() => setOpenId(openId === i.id ? null : i.id)}>
-      {i.photo && <img className="pic" src={i.photo} alt={i.name} loading="lazy" />}
+      {i.photo ? <img className="pic" src={i.photo} alt={i.name} loading="lazy" /> : isWine && <span className={`bt ${i.wineColor || ''}`}><Bottle /></span>}
       <div className="info">
         <h3>{i.name}</h3>
         {wmeta(i) && <p className="wmeta">{wmeta(i)}</p>}
@@ -262,6 +273,26 @@ export default function Menu() {
           {cat && (
             <>
               <h2>{title} <small>{count} {count === 1 ? 'продукт' : 'продукта'}</small></h2>
+              {isWine && (
+                <div className="wmapbox">
+                  <div className="wmap">
+                    <img src={mapImg} alt="Карта на винените райони на България" />
+                    {WINE_AREAS.map(a => {
+                      const n = areaCount(a.id)
+                      return (
+                        <button type="button" key={a.id} className={`wpin${area === a.id ? ' on' : ''}${n ? '' : ' none'}`}
+                          style={{ left: `${a.x}%`, top: `${a.y}%` }} disabled={!n} aria-pressed={area === a.id}
+                          aria-label={`${a.name}: ${n}`} onClick={() => setWArea(area === a.id ? '' : a.id)}>
+                          <Bottle />{n > 0 && <b>{n}</b>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {area
+                    ? <p className="warea"><strong>{areaName}</strong><button type="button" onClick={() => setWArea('')}>Всички области ✕</button></p>
+                    : <p className="warea hint">Избери област от картата</p>}
+                </div>
+              )}
               {anyGlass && (
                 <nav className="wmode" aria-label="Бутилки или чаши">
                   <button type="button" aria-pressed={mode === 'bottle'} onClick={() => setWMode('bottle')}>Бутилки</button>

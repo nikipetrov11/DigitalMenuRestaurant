@@ -20,6 +20,18 @@ export function fileToDataUrl(file, max = 800, quality = 0.72, type = 'image/jpe
 // Винена карта: цвят и вкус (сладост) на виното
 export const WINE_COLORS = [['red', 'Червено'], ['white', 'Бяло'], ['rose', 'Розе'], ['sparkling', 'Пенливо'], ['orange', 'Оранжево']]
 export const WINE_TASTES = [['dry', 'Сухо'], ['semi-dry', 'Полусухо'], ['semi-sweet', 'Полусладко'], ['sweet', 'Сладко']]
+// Винени области върху картата (x/y са в % от картинката)
+export const WINE_AREAS = [
+  { id: 'nw', name: 'Северозападна България', x: 16.4, y: 25.3 },
+  { id: 'dunav', name: 'Централна Дунавска равнина', x: 41.6, y: 33.4 },
+  { id: 'sever', name: 'Северно Черноморие', x: 80.5, y: 21.5 },
+  { id: 'yuzh', name: 'Южно Черноморие', x: 76.9, y: 50.0 },
+  { id: 'sakar', name: 'Сакар и Източни Родопи', x: 60.0, y: 86.0 },
+  { id: 'iztrak', name: 'Източна Тракийска низина', x: 64.0, y: 56.0 },
+  { id: 'zaptrak', name: 'Западна Тракийска низина', x: 35.0, y: 65.9 },
+  { id: 'roza', name: 'Розова долина', x: 46.3, y: 53.5 },
+  { id: 'struma', name: 'Долината на река Струма', x: 16.1, y: 87.0 },
+]
 const low = s => (s || '').trim().toLowerCase()
 // категория „Вино“ или подкатегория на „Вино“
 export const isWineCat = (name, parent) => low(name).startsWith('вин') || low(parent).startsWith('вин')

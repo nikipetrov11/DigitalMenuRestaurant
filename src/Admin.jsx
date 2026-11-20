@@ -9,7 +9,7 @@ import {
 } from 'firebase/firestore'
 import { auth, db } from './firebase'
 import QRCode from 'qrcode'
-import { fileToDataUrl, WINE_COLORS, WINE_TASTES, isWineCat, isAlcCat } from './util'
+import { fileToDataUrl, WINE_COLORS, WINE_TASTES, WINE_AREAS, isWineCat, isAlcCat } from './util'
 
 const SUGGEST = ['Салати', 'Предястия', 'Основни ястия', 'Пици', 'Паста', 'Десерти', 'Напитки']
 const COLORS = ['#e9b45c', '#e8691a', '#c0392b', '#1f6b4f', '#1d4e89', '#333333']
@@ -110,7 +110,7 @@ function Dashboard({ slug }) {
 
 function Dishes({ docRef, col, items, catObjs, cur, W }) {
   const cats = catObjs.map(c => c.name)
-  const empty = { name: '', price: '', category: '', newCat: '', desc: '', photo: '', featured: false, wineColor: '', taste: '', grape: '', region: '', year: '', volume: '', glass: '' }
+  const empty = { name: '', price: '', category: '', newCat: '', desc: '', photo: '', featured: false, wineColor: '', taste: '', area: '', grape: '', region: '', year: '', volume: '', glass: '' }
   const [f, setF] = useState(empty)
   const [editId, setEditId] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -140,8 +140,8 @@ function Dishes({ docRef, col, items, catObjs, cur, W }) {
         if (!cats.includes(cat)) await updateDoc(docRef, { categories: [...catObjs, { name: cat, group: '', parent: '' }] })
       }
       const w = wine
-        ? { wineColor: f.wineColor, taste: f.taste, grape: f.grape.trim(), region: f.region.trim(), year: f.year.trim(), glassPrice: f.glass === '' ? null : Number(f.glass) }
-        : { wineColor: '', taste: '', grape: '', region: '', year: '', glassPrice: null }
+        ? { wineColor: f.wineColor, taste: f.taste, area: f.area, grape: f.grape.trim(), region: f.region.trim(), year: f.year.trim(), glassPrice: f.glass === '' ? null : Number(f.glass) }
+        : { wineColor: '', taste: '', area: '', grape: '', region: '', year: '', glassPrice: null }
       const data = { name: f.name.trim(), price: Number(f.price), category: cat, desc: f.desc.trim(), photo: f.photo, featured: f.featured, ...w, volume: wine || alc ? f.volume.trim() : '' }
       if (editId) await updateDoc(doc(col, editId), data)
       else await addDoc(col, { ...data, visible: true })
@@ -159,7 +159,7 @@ function Dishes({ docRef, col, items, catObjs, cur, W }) {
     setMsg('')
     setF({
       name: i.name, price: i.price, category: i.category || '', newCat: '', desc: i.desc || '', photo: i.photo || '', featured: !!i.featured,
-      wineColor: i.wineColor || '', taste: i.taste || '', grape: i.grape || '', region: i.region || '', year: i.year || '', volume: i.volume || '',
+      wineColor: i.wineColor || '', taste: i.taste || '', area: i.area || '', grape: i.grape || '', region: i.region || '', year: i.year || '', volume: i.volume || '',
       glass: i.glassPrice ?? '',
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -233,6 +233,14 @@ function Dishes({ docRef, col, items, catObjs, cur, W }) {
                   </select>
                 </label>
               </div>
+            )}
+            {wine && (
+              <label>Област на картата
+                <select value={f.area} onChange={set('area')}>
+                  <option value="">— без област —</option>
+                  {WINE_AREAS.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </label>
             )}
             {wine && (
               <div className="row2">

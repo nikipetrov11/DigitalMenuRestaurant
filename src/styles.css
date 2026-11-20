@@ -339,3 +339,20 @@ header > .status { margin: 12px 20px 0; }
 .luxe .wmode button { color: #bdb39c; border-radius: 2px; letter-spacing: .08em; text-transform: uppercase; font-size: .72rem; }
 .luxe .wmode button[aria-pressed=true] { background: var(--accent); color: var(--on-accent); }
 .luxe .price small.gl { color: #bdb39c; }
+
+/* ===== карта на винените области ===== */
+.wmapbox { margin: 4px 6px 18px; }
+.wmap { position: relative; width: 100%; aspect-ratio: 903 / 604; }
+.wmap img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(0,0,0,.35)); pointer-events: none; }
+.wpin { position: absolute; transform: translate(-50%, -62%); display: grid; place-items: center; width: 30px; min-height: 0; padding: 0; color: #fff; background: none; border: 0; filter: drop-shadow(0 2px 3px rgba(0,0,0,.6)); transition: transform .2s; }
+.wpin svg { width: 100%; height: auto; display: block; color: #7a1f2b; stroke: #fff; stroke-width: 1.6; paint-order: stroke; }
+.wpin b { position: absolute; bottom: -7px; right: -7px; min-width: 17px; height: 17px; padding: 0 4px; font: 800 .65rem/17px Montserrat, sans-serif; color: var(--on-accent); text-align: center; background: var(--accent); border-radius: 9px; }
+.wpin.on { transform: translate(-50%, -62%) scale(1.3); z-index: 2; }
+.wpin.on svg { color: var(--accent); }
+.wpin.none { opacity: .3; filter: none; }
+.warea { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 0; font-size: .95rem; }
+.warea.hint { justify-content: center; font-size: .8rem; opacity: .6; }
+.warea button { min-height: 0; padding: 7px 12px; color: inherit; font: 700 .72rem Montserrat, sans-serif; background: transparent; border: 1px solid currentColor; border-radius: 999px; opacity: .8; }
+.bt { flex: none; display: grid; place-items: center; width: 44px; height: 76px; color: #7a1f2b; }
+.bt svg { height: 100%; width: auto; }
+.bt.white { color: #d9c36a; } .bt.rose { color: #e08a9a; } .bt.sparkling { color: #cdb985; } .bt.orange { color: #d9822b; }
