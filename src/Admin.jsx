@@ -9,7 +9,7 @@ import {
 } from 'firebase/firestore'
 import { auth, db } from './firebase'
 import QRCode from 'qrcode'
-import { fileToDataUrl, WINE_COLORS, WINE_TASTES, WINE_AREAS, isWineCat, isAlcCat } from './util'
+import { fileToDataUrl, WINE_COLORS, WINE_TASTES, WINE_AREAS, isWineCat, isAlcCat, CASA_IG, isCasa } from './util'
 import { resolveMap, DEFAULT_MAP, DEFAULT_BG, labelClass } from './winemap'
 
 const SUGGEST = ['Салати', 'Предястия', 'Основни ястия', 'Пици', 'Паста', 'Десерти', 'Напитки']
@@ -482,6 +482,7 @@ function Look({ docRef, rest }) {
     logo: rest.logo || '', logoBg: rest.logoBg || 'dark', logoShape: rest.logoShape || 'circle', opens: rest.opens || '', closes: rest.closes || '',
     drinksOnly: rest.drinksOnly ?? /casa\s*noma/i.test(rest.name || ''), tagline: rest.tagline || '', wifi: rest.wifi || '', wifiPass: rest.wifiPass || '',
     address: rest.address || '', phone: rest.phone || '', facebook: rest.facebook || '', google: rest.google || '',
+    instagram: rest.instagram ?? (isCasa(rest) ? CASA_IG : ''), hideInfo: rest.hideInfo ?? isCasa(rest),
     slides: rest.slides?.length ? rest.slides : rest.cover ? [rest.cover] : [],
   })
   const [msg, setMsg] = useState('')
@@ -587,6 +588,13 @@ function Look({ docRef, rest }) {
           <label>Facebook страница (линк) <input value={v.facebook} onChange={e => setV({ ...v, facebook: e.target.value })} placeholder="https://facebook.com/..." /></label>
           <label>Google отзиви (линк) <input value={v.google} onChange={e => setV({ ...v, google: e.target.value })} placeholder="https://g.page/r/.../review" /></label>
         </div>
+      </div>
+
+      <div className="stack">
+        <strong>Instagram</strong>
+        <label>Instagram профил (линк) <input value={v.instagram} onChange={e => setV({ ...v, instagram: e.target.value })} placeholder="https://www.instagram.com/..." /></label>
+        <p className="muted" style={{ margin: 0 }}>Показва се като иконка вдясно от името. Остави празно, за да не се показва.</p>
+        <label className="check"><input type="checkbox" checked={v.hideInfo} onChange={e => setV({ ...v, hideInfo: e.target.checked })} /> Скрий бутона „Информация“ в менюто</label>
       </div>
 
       <div>

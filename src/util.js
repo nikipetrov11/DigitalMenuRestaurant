@@ -46,3 +46,7 @@ const BG = { а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ж:'zh',з:'z',и:'i',й:
 export const slugify = s =>
   s.toLowerCase().split('').map(c => BG[c] ?? c).join('')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30)
+
+// Casa Noma: Instagram и скрит бутон „Информация“ по подразбиране, освен ако не е зададено ръчно
+export const CASA_IG = 'https://www.instagram.com/casa_noma_osteria/'
+export const isCasa = r => /casa\s*noma/i.test(r?.name || '')

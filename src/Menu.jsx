@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { doc, collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from './firebase'
-import { WINE_COLORS, WINE_TASTES } from './util'
+import { WINE_COLORS, WINE_TASTES, CASA_IG, isCasa } from './util'
 import { resolveMap, labelClass } from './winemap'
 
 const Bottle = ({ src }) => src ? <img src={src} alt="" aria-hidden="true" /> : (
@@ -83,6 +83,8 @@ export default function Menu() {
   const wm = resolveMap(rest)
   const showMap = wm.on && wm.areas.length > 0
   const link = u => (/^https?:\/\//i.test(u) ? u : `https://${u}`)
+  const insta = rest.instagram ?? (isCasa(rest) ? CASA_IG : '')
+  const showInfoBtn = hasInfo && !(rest.hideInfo ?? isCasa(rest))
 
   const all = (rest.categories || []).map(norm)
   items.forEach(i => { if (!all.some(c => c.name === catOf(i))) all.push({ name: catOf(i), group: '', parent: '' }) })
@@ -211,15 +213,26 @@ export default function Menu() {
               {rest.logo ? <img src={rest.logo} alt={rest.name} /> : <span>{rest.name.trim().charAt(0).toUpperCase()}</span>}
             </div>
             <div className="idtext">
-              {!rest.hideName && <h1 className="idname">{rest.name}</h1>}
+              <div className="idline">
+                {!rest.hideName && <h1 className="idname">{rest.name}</h1>}
+                {insta && (
+                  <a className="igbtn" href={link(insta)} target="_blank" rel="noreferrer" aria-label="Instagram">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
+                      <circle cx="12" cy="12" r="4" />
+                      <circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" />
+                    </svg>
+                  </a>
+                )}
+              </div>
               {rest.tagline && <p className="tagline">{rest.tagline}</p>}
             </div>
           </div>
 
-          {(status || hasInfo) && (
+          {(status || showInfoBtn) && (
             <div className="meta">
               {status ? <div className={`status${status.open ? '' : ' closed'}`}><i />{status.text}</div> : <span />}
-              {hasInfo && (
+              {showInfoBtn && (
                 <button type="button" className="infobtn" aria-expanded={info} onClick={() => setInfo(!info)}>Информация</button>
               )}
             </div>
