@@ -556,3 +556,13 @@ header > .status { margin: 12px 20px 0; }
 .cover.ov .idrow.vert .idtext { flex: none; flex-direction: row-reverse; align-items: center; justify-content: flex-end; gap: 10px; align-self: flex-start; margin: 0; }
 .cover.ov .idrow.vert .idline { margin: 0; }
 .cover.ov .idrow.vert .tagline { margin: 0; }
+
+/* ---- Банер като постер: лого, Instagram + "Добре дошли" и статус вътре в банера ---- */
+.cover.ov { height: clamp(225px, 60vw, 330px); }
+.cover.ov .idrow.vert { left: 20px; right: 20px; padding-bottom: 54px; }
+.cover.ov .idrow.vert .avatar.free { width: min(52%, 270px); }
+.cover.ov .idrow.vert .idtext { flex-direction: row; flex-wrap: wrap; gap: 6px 12px; }
+.cover.ov .idrow.vert .idline { gap: 8px; }
+.iglabel { color: #efe7d6; font: 500 clamp(.78rem, 3.5vw, 1.1rem)/1.2 'Playfair Display', Georgia, serif; text-decoration: none; white-space: nowrap; }
+.cover.ov .idrow.vert .tagline { padding-left: 12px; border-left: 1px solid rgba(210, 179, 110, .55); font-size: clamp(.78rem, 3.5vw, 1.1rem); line-height: 1.2; white-space: nowrap; text-shadow: none; }
+.cover.ov .status.cov { position: absolute; z-index: 3; bottom: 16px; left: 50%; transform: translateX(-50%); gap: 8px; padding: 9px 18px; color: #efe7d6; font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; background: rgba(20, 18, 16, .72); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 6px 20px rgba(0, 0, 0, .45); }

@@ -79,6 +79,7 @@ export default function Menu() {
   const bottleMoney = i => `${Number(i.price).toFixed(2)} ${cur}`
   const money = i => (hasBottle(i) ? bottleMoney(i) : hasGlass(i) ? glassMoney(i) : '')
   const status = rest.hideStatus ? null : openStatus(rest.opens, rest.closes)
+  const metaStatus = (rest.coverIdentity ?? isCasa(rest)) ? null : status // при банер с лого статусът е вътре в банера
   const hasInfo = !!(rest.opens || rest.wifi || rest.address || rest.phone || rest.facebook || rest.google)
   const wm = resolveMap(rest)
   const showMap = wm.on && wm.areas.length > 0
@@ -217,6 +218,9 @@ export default function Menu() {
                     </svg>
                   </a>
                 )}
+                {insta && rest.hideName && rest.logoShape === 'free' && (
+                  <a className="iglabel" href={link(insta)} target="_blank" rel="noreferrer">{rest.name}</a>
+                )}
               </div>
               {rest.tagline && <p className="tagline">{rest.tagline}</p>}
             </div>
@@ -237,13 +241,14 @@ export default function Menu() {
               </>
             )}
             {ov && ident}
+            {ov && status && <div className={`status cov${status.open ? '' : ' closed'}`}><i />{status.text}</div>}
           </div>
 
           {!ov && ident}
 
-          {(status || showInfoBtn) && (
+          {(metaStatus || showInfoBtn) && (
             <div className="meta">
-              {status ? <div className={`status${status.open ? '' : ' closed'}`}><i />{status.text}</div> : <span />}
+              {metaStatus ? <div className={`status${metaStatus.open ? '' : ' closed'}`}><i />{metaStatus.text}</div> : <span />}
               {showInfoBtn && (
                 <button type="button" className="infobtn" aria-expanded={info} onClick={() => setInfo(!info)}>Информация</button>
               )}
