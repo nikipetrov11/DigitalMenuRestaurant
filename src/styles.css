@@ -507,3 +507,6 @@ header > .status { margin: 12px 20px 0; }
 .cover.ov .igbtn { width: 24px; height: 24px; }
 .cover.ov .igbtn svg { width: 24px; height: 24px; }
 .cover.ov .tagline { font-size: clamp(.95rem, 4.2vw, 1.35rem); }
+
+/* ---- По-ниска снимка на банера ---- */
+.cover.ov { height: clamp(200px, 52vw, 290px); }
