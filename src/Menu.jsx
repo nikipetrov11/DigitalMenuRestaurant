@@ -84,6 +84,7 @@ export default function Menu() {
   const showMap = wm.on && wm.areas.length > 0
   const link = u => (/^https?:\/\//i.test(u) ? u : `https://${u}`)
   const insta = rest.instagram ?? (isCasa(rest) ? CASA_IG : '')
+  const ov = rest.coverIdentity ?? isCasa(rest) // лого, име и Instagram върху банера
   const showInfoBtn = hasInfo && !(rest.hideInfo ?? isCasa(rest))
 
   const all = (rest.categories || []).map(norm)
@@ -193,21 +194,7 @@ export default function Menu() {
     setTimeout(() => document.getElementById('list')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
   }
 
-  return (
-    <div className={`page${rest.theme === 'luxury' ? ' luxe' : ''}`} style={{ '--accent': accent, '--on-accent': onAccent(accent) }}>
-      <div className="shell">
-        <header>
-          <div className="cover">
-            {slides[idx] && <div key={idx} className="hero-bg" style={{ backgroundImage: `url("${slides[idx]}")` }} />}
-            {slides.length > 1 && (
-              <>
-                <button className="arrow l" aria-label="Назад" onClick={() => setSlide((idx + slides.length - 1) % slides.length)}>‹</button>
-                <button className="arrow r" aria-label="Напред" onClick={() => setSlide((idx + 1) % slides.length)}>›</button>
-                <div className="dots">{slides.map((_, k) => <i key={k} className={k === idx ? 'on' : ''} />)}</div>
-              </>
-            )}
-          </div>
-
+  const ident = (
           <div className="idrow">
             <div className={`avatar${rest.logo ? ` ${rest.logoShape || 'circle'}${rest.logoBg === 'light' ? ' light' : ''}` : ' init'}`}>
               {rest.logo ? <img src={rest.logo} alt={rest.name} /> : <span>{rest.name.trim().charAt(0).toUpperCase()}</span>}
@@ -228,6 +215,25 @@ export default function Menu() {
               {rest.tagline && <p className="tagline">{rest.tagline}</p>}
             </div>
           </div>
+  )
+
+  return (
+    <div className={`page${rest.theme === 'luxury' ? ' luxe' : ''}`} style={{ '--accent': accent, '--on-accent': onAccent(accent) }}>
+      <div className="shell">
+        <header>
+          <div className={`cover${ov ? ' ov' : ''}`}>
+            {slides[idx] && <div key={idx} className="hero-bg" style={{ backgroundImage: `url("${slides[idx]}")` }} />}
+            {slides.length > 1 && (
+              <>
+                <button className="arrow l" aria-label="Назад" onClick={() => setSlide((idx + slides.length - 1) % slides.length)}>‹</button>
+                <button className="arrow r" aria-label="Напред" onClick={() => setSlide((idx + 1) % slides.length)}>›</button>
+                <div className="dots">{slides.map((_, k) => <i key={k} className={k === idx ? 'on' : ''} />)}</div>
+              </>
+            )}
+            {ov && ident}
+          </div>
+
+          {!ov && ident}
 
           {(status || showInfoBtn) && (
             <div className="meta">

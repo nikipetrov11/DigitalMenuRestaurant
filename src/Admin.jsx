@@ -482,7 +482,7 @@ function Look({ docRef, rest }) {
     logo: rest.logo || '', logoBg: rest.logoBg || 'dark', logoShape: rest.logoShape || 'circle', opens: rest.opens || '', closes: rest.closes || '',
     drinksOnly: rest.drinksOnly ?? /casa\s*noma/i.test(rest.name || ''), tagline: rest.tagline || '', wifi: rest.wifi || '', wifiPass: rest.wifiPass || '',
     address: rest.address || '', phone: rest.phone || '', facebook: rest.facebook || '', google: rest.google || '',
-    hideStatus: !!rest.hideStatus, instagram: rest.instagram ?? (isCasa(rest) ? CASA_IG : ''), hideInfo: rest.hideInfo ?? isCasa(rest),
+    hideStatus: !!rest.hideStatus, coverIdentity: rest.coverIdentity ?? isCasa(rest), instagram: rest.instagram ?? (isCasa(rest) ? CASA_IG : ''), hideInfo: rest.hideInfo ?? isCasa(rest),
     slides: rest.slides?.length ? rest.slides : rest.cover ? [rest.cover] : [],
   })
   const [msg, setMsg] = useState('')
@@ -514,6 +514,8 @@ function Look({ docRef, rest }) {
       <h2>Външен вид</h2>
       <label>Име на заведението <input value={v.name} onChange={e => setV({ ...v, name: e.target.value })} required /></label>
       <label className="check"><input type="checkbox" checked={v.hideName} onChange={e => setV({ ...v, hideName: e.target.checked })} /> Скрий името до логото (ако логото вече го съдържа)</label>
+
+      <label className="check"><input type="checkbox" checked={v.coverIdentity} onChange={e => setV({ ...v, coverIdentity: e.target.checked })} /> Покажи логото, името и Instagram върху снимката на банера (като постер)</label>
 
       <label className="check"><input type="checkbox" checked={v.drinksOnly} onChange={e => setV({ ...v, drinksOnly: e.target.checked })} /> Само напитки (в панела пише „напитки“ вместо „ястия“)</label>
 

@@ -484,3 +484,17 @@ header > .status { margin: 12px 20px 0; }
 /* ---- Име + приветствие: центрирани спрямо видимата част на логото (под банера) ---- */
 .idtext { align-self: stretch; display: flex; flex-direction: column; justify-content: center; margin-top: 46px; }
 .idtext .tagline { margin-top: 3px; }
+
+/* ---- Лого, име, Instagram и приветствие вътре в банера (като постер) ---- */
+.cover.ov { height: clamp(260px, 70vw, 400px); }
+.cover.ov::after { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,.72) 100%); pointer-events: none; }
+.cover.ov .hero-bg { background-position: 72% center; }
+.cover.ov .dots { top: 12px; bottom: auto; z-index: 3; }
+.cover.ov .arrow { z-index: 3; }
+.cover.ov .idrow { position: absolute; z-index: 3; right: 18px; bottom: 18px; left: 18px; align-items: center; margin: 0; }
+.cover.ov .avatar { width: 104px; height: 104px; }
+.cover.ov .avatar.wide, .cover.ov .page .avatar.free { width: auto; height: auto; }
+.cover.ov .idtext { align-self: center; margin-top: 0; }
+.cover.ov .idname { color: #fff; font: 500 clamp(1.3rem, 6vw, 2rem)/1.12 'Playfair Display', Georgia, serif; letter-spacing: .01em; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
+.cover.ov .igbtn { color: #d2b36e; }
+.cover.ov .tagline { margin-top: 8px; color: #d2b36e; font: 500 clamp(1rem, 4.6vw, 1.35rem)/1.2 'Playfair Display', Georgia, serif; font-style: normal; text-shadow: 0 2px 8px rgba(0,0,0,.6); }
