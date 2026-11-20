@@ -608,3 +608,12 @@ header > .status { margin: 12px 20px 0; }
 .cover.ov .status.cov em { font-style: normal; font-weight: 600; letter-spacing: .08em; color: #c9ad6a; }
 .cover.ov .status.cov strong { margin-left: .2em; font-weight: 800; letter-spacing: .06em; color: #f3dfa6; }
 @media (prefers-reduced-motion: reduce) { .cover.ov .status.cov i { animation: none; } }
+
+/* Банер: по-нисък (изрязан малко отгоре и отдолу, по средата), за да не е толкова издължен */
+.cover.ov { height: auto; aspect-ratio: 1168 / 650; }
+.cover.ov .hero-bg { background-position: center center; }
+/* Instagram зоната е пренастроена за по-ниския банер */
+.cover .ighot { top: 58.5%; height: 12%; }
+
+/* Линкът към Instagram е само върху иконката и името (без „Добре дошли“) */
+.cover .ighot { left: 7.5%; width: 24%; top: 59%; height: 11%; }
