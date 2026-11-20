@@ -116,6 +116,7 @@ function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
   const [f, setF] = useState(empty)
   const [editId, setEditId] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [noCut, setNoCut] = useState(false)
   const [msg, setMsg] = useState('')
   const set = k => e => setF({ ...f, [k]: e.target.value })
   // избраната категория; ако още няма категории, се показва поле за нова
@@ -131,7 +132,7 @@ function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
     setBusy(true)
     try {
       // за вино: автоматично изрязана бутилка (прозрачен фон); за останалите – обикновена снимка
-      const url = wine ? await bottleCutout(file) : await fileToDataUrl(file, 480, 0.6)
+      const url = wine && !noCut ? await bottleCutout(file) : await fileToDataUrl(file, 480, 0.6)
       setF(p => ({ ...p, photo: url }))
     } catch { setMsg('Снимката не се зареди.') }
     setBusy(false)
@@ -209,16 +210,31 @@ function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
     </div>
   )
 
+  // винa: подредени по регион (както в картата) и групирани със заглавие за региона
+  const areaIdx = id => { const k = areas.findIndex(a => a.id === id); return k < 0 ? 999 : k }
+  const areaName = id => areas.find(a => a.id === id)?.name || 'Без регион'
+  const list = arr => {
+    if (!arr.some(i => i.area)) return arr.map(row)
+    const sorted = [...arr].sort((a, b) => areaIdx(a.area) - areaIdx(b.area) || a.name.localeCompare(b.name, 'bg'))
+    const out = []
+    sorted.forEach((i, n) => {
+      if (n === 0 || sorted[n - 1].area !== i.area) out.push(<div className="region-h" key={'r' + (i.area || 'none') + n}>{areaName(i.area)} <span className="cnt">{sorted.filter(x => x.area === i.area).length}</span></div>)
+      out.push(row(i))
+    })
+    return out
+  }
+
   return (
     <>
       <form onSubmit={save} className="stack card">
         <h2>{editId ? W.edit : W.add}</h2>
 
-        <label className={`upload${wine && f.photo ? ' cut' : ''}`}>
+        <label className={`upload${wine && !noCut && f.photo ? ' cut' : ''}`}>
           {f.photo ? <img src={f.photo} alt="" /> : <span>{wine ? 'Качи снимка на бутилката – фонът се маха автоматично' : 'Натисни, за да добавиш снимка'}</span>}
           <input type="file" accept="image/*" onChange={pick} hidden />
         </label>
         {f.photo && <button type="button" className="link" onClick={() => setF({ ...f, photo: '' })}>Махни снимката</button>}
+        {wine && <label className="check"><input type="checkbox" checked={noCut} onChange={e => setNoCut(e.target.checked)} /> Не изрязвай бутилката (качи снимката такава, каквато е)</label>}
 
         <label>Име <input value={f.name} onChange={set('name')} required /></label>
         {!wine && <label>Цена ({cur}) <input type="number" step="0.01" min="0" value={f.price} onChange={set('price')} required /></label>}
@@ -299,11 +315,11 @@ function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
           <details className="cat" key={c.name} open={term ? true : undefined}>
             <summary><span>{c.name}{c.group && <span className="sub-tag"> · {c.group}</span>}</span><span className="cnt">{total}</span></summary>
             <div className="cat-body">
-              {itemsOf(c.name).map(row)}
+              {list(itemsOf(c.name))}
               {kidsOf(c.name).map(k => itemsOf(k.name).length > 0 && (
                 <details className="cat" key={k.name} open={term ? true : undefined}>
                   <summary><span>{k.name}</span><span className="cnt">{itemsOf(k.name).length}</span></summary>
-                  <div className="cat-body">{itemsOf(k.name).map(row)}</div>
+                  <div className="cat-body">{list(itemsOf(k.name))}</div>
                 </details>
               ))}
             </div>

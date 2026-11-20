@@ -34,24 +34,33 @@ export async function bottleCutout(file, H = 360) {
   g.drawImage(img, 0, 0, w, h)
   const im = g.getImageData(0, 0, w, h), d = im.data
   const dist = (a, b) => Math.hypot(d[a] - d[b], d[a + 1] - d[b + 1], d[a + 2] - d[b + 2])
-  // еталонни цветове на фона: ъгли и средите на страните
-  const pts = [[0,0],[w-1,0],[0,h-1],[w-1,h-1],[w>>1,0],[w>>1,h-1],[0,h>>1],[w-1,h>>1]].map(([x,y]) => (y * w + x) * 4)
+  // еталонни цветове на фона: 40 точки по краищата на снимката
+  const pts = []
+  for (let t = 0; t < 10; t++) {
+    const x = Math.round((t / 9) * (w - 1)), y = Math.round((t / 9) * (h - 1))
+    pts.push((0 * w + x) * 4, ((h - 1) * w + x) * 4, (y * w + 0) * 4, (y * w + (w - 1)) * 4)
+  }
+  const TOL = 20
+  const near = k => pts.some(r => dist(k, r) < TOL)
   const bg = new Uint8Array(w * h), q = []
-  const push = (x, y) => { const i = y * w + x; if (!bg[i]) { bg[i] = 1; q.push(i) } }
-  const near = k => pts.some(r => dist(k, r) < 38)
-  for (let x = 0; x < w; x++) for (const y of [0, h - 1]) if (near((y * w + x) * 4)) push(x, y)
-  for (let y = 0; y < h; y++) for (const x of [0, w - 1]) if (near((y * w + x) * 4)) push(x, y)
+  const push = (x, y) => { const i = y * w + x; if (!bg[i] && near(i * 4)) { bg[i] = 1; q.push(i) } }
+  for (let x = 0; x < w; x++) { push(x, 0); push(x, h - 1) }
+  for (let y = 0; y < h; y++) { push(0, y); push(w - 1, y) }
+  // фон е само това, което е близо до цвета на краищата (без „протичане“ през меките ръбове на бутилката)
   while (q.length) {
-    const i = q.pop(), x = i % w, y = (i / w) | 0, k = i * 4
+    const i = q.pop(), x = i % w, y = (i / w) | 0
     for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
       const nx = x + dx, ny = y + dy
       if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
       const j = ny * w + nx
-      if (bg[j]) continue
-      const kj = j * 4
-      // фон е: прилича на съседния фонов пиксел (плавен преход) или на еталонен цвят
-      if (dist(kj, k) < 12 || near(kj)) { bg[j] = 1; q.push(j) }
+      if (!bg[j] && near(j * 4)) { bg[j] = 1; q.push(j) }
     }
+  }
+  // бутилката е изпъкнала по хоризонтала: запълваме всичко между най-лявата и най-дясната точка на реда
+  for (let y = 0; y < h; y++) {
+    let l = -1, r = -1
+    for (let x = 0; x < w; x++) if (!bg[y * w + x]) { if (l < 0) l = x; r = x }
+    if (l >= 0 && r - l > 1) for (let x = l; x <= r; x++) bg[y * w + x] = 0
   }
   let minX = w, minY = h, maxX = -1, maxY = -1, left = 0
   for (let i = 0; i < w * h; i++) {

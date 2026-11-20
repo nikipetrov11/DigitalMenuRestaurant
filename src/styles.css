@@ -376,7 +376,8 @@ header > .status { margin: 12px 20px 0; }
 .wpin.none .wlab { opacity: .75; }
 
 .wpin img { display: block; width: 100%; height: auto; }
-.bt img { display: block; height: 100%; width: auto; max-width: 100%; object-fit: contain; }
+.bt { height: 88px; }
+.bt img { display: block; width: 44px; height: 88px; max-width: none; max-height: none; object-fit: contain; object-position: center; }
 /* редактор на картата в админа */
 .wmapedit { padding: 8px 0; overflow: hidden; background: #0c0a0a; border-radius: 14px; }
 .wmapedit .wpin { cursor: grab; touch-action: none; }
@@ -619,3 +620,6 @@ header > .status { margin: 12px 20px 0; }
 
 /* Линкът към Instagram е само върху иконката и името (без „Добре дошли“) */
 .cover .ighot { left: 7.5%; width: 24%; top: 59%; height: 11%; }
+
+.region-h { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 8px 10px; font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; background: #f1efe9; border-radius: 8px; }
+.region-h .cnt { font-weight: 600; color: var(--muted); }
