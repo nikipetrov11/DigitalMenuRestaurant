@@ -145,12 +145,20 @@ export default function Menu() {
     const first = m === 'bottle' ? (b ? 'b' : 'g') : (g ? 'g' : 'b')
     const second = first === 'g' ? (b ? 'b' : null) : (g ? 'g' : null)
     const txt = k => (k === 'g' ? glassMoney(i) : bottleMoney(i))
-    const lab = k => (k === 'g' ? `чаша${i.glassMl ? ` ${i.glassMl} мл` : ''}` : `бутилка${i.volume ? ` ${i.volume} мл` : ''}`)
+    const lab = k => (k === 'g' ? ['Чаша', i.glassMl] : ['Бутилка', i.volume])
+    const row = (k, main) => {
+      const [name, ml] = lab(k)
+      return (
+        <span className={`prow${main ? ' main' : ''}`}>
+          <span className="plab">{name}{ml ? <em>{ml} мл</em> : null}</span>
+          <b>{txt(k)}</b>
+        </span>
+      )
+    }
     return (
       <>
-        {txt(first)}
-        <small className="gl">{lab(first)}</small>
-        {second && <small className="gl">{lab(second)} · {txt(second)}</small>}
+        {row(first, true)}
+        {second && row(second, false)}
       </>
     )
   }
@@ -168,7 +176,7 @@ export default function Menu() {
         {i.desc && <p>{i.desc}</p>}
         {i.soldOut && <em className="tag">изчерпано</em>}
       </div>
-      <span className="price">{isWine ? wprice(i, mode === 'bottle' ? 'bottle' : 'glass') : money(i)}</span>
+      <span className={`price${isWine ? ' wp' : ''}`}>{isWine ? wprice(i, mode === 'bottle' ? 'bottle' : 'glass') : money(i)}</span>
     </button>
   )
   const dish = dishIn(false)

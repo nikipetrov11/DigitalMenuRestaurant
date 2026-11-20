@@ -442,3 +442,21 @@ header > .status { margin: 12px 20px 0; }
 .wlab em { color: #fff; }
 .wlab small { color: #fff3d2; opacity: 1; font-weight: 600; -webkit-text-stroke-width: .3em; }
 .wpin.on .wlab em { color: var(--accent); }
+
+/* ---- Надписите на областите са част от бутона (кликат се) ---- */
+.wmap .wpin .wlab { pointer-events: auto; cursor: pointer; }
+.wpin.none .wlab { cursor: default; }
+
+/* ---- Цена на вино: подредена по редове (чаша / бутилка) ---- */
+.price.wp { display: flex; flex-direction: column; gap: 6px; padding: 8px 12px; text-align: left; border-radius: 12px; }
+.prow { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; white-space: nowrap; }
+.prow + .prow { padding-top: 6px; border-top: 1px solid rgba(0,0,0,.12); }
+.plab { display: flex; flex-direction: column; font: 700 .62rem/1.25 Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
+.plab em { font-style: normal; font-weight: 600; letter-spacing: 0; text-transform: none; opacity: .85; }
+.prow b { font-weight: 800; font-size: .88rem; }
+.prow.main b { font-size: 1.05rem; }
+.luxe .price.wp { padding: 0; background: none; border-radius: 0; }
+.luxe .prow + .prow { border-top-color: rgba(255,255,255,.12); }
+.luxe .plab { color: #bdb39c; opacity: 1; }
+.luxe .prow b { font-family: 'Playfair Display', Georgia, serif; font-weight: 600; color: #d9cfb9; }
+.luxe .prow.main b { color: var(--accent); }
