@@ -132,11 +132,45 @@ export const translit = s =>
     return c === c.toLowerCase() ? l : l[0].toUpperCase() + l.slice(1)
   })
 
+// Известни сортове и винени имена: българският текст -> общоприетото име (не се транслитерира).
+// Ключът може да е с няколко думи; различните изписвания на едно и също име са отделни редове.
+// Намира се навсякъде в текста (име на вино, сорт, описание), а останалото се превежда/транслитерира както преди.
+const GRAPES = {
+  'Каберне Совиньон': 'Cabernet Sauvignon', 'Каберне Сувиньон': 'Cabernet Sauvignon', 'Каберне Сьовиньон': 'Cabernet Sauvignon',
+  'Каберне Совиньо': 'Cabernet Sauvignon', 'Кабернe Совиньон': 'Cabernet Sauvignon',
+  'Каберне Фран': 'Cabernet Franc', 'Каберне': 'Cabernet',
+  'Совиньон Блан': 'Sauvignon Blanc', 'Сувиньон Блан': 'Sauvignon Blanc', 'Совиньон': 'Sauvignon', 'Сувиньон': 'Sauvignon',
+  'Мерло': 'Merlot', 'Шардоне': 'Chardonnay', 'Пино Ноар': 'Pinot Noir', 'Пино Гри': 'Pinot Gris', 'Пино Гриджо': 'Pinot Grigio',
+  'Пино Блан': 'Pinot Blanc', 'Пино': 'Pinot', 'Сира': 'Syrah', 'Шираз': 'Shiraz', 'Малбек': 'Malbec', 'Гренаш': 'Grenache',
+  'Темпранийо': 'Tempranillo', 'Санджовезе': 'Sangiovese', 'Небиоло': 'Nebbiolo', 'Зинфандел': 'Zinfandel', 'Вионие': 'Viognier',
+  'Пти Вердо': 'Petit Verdot', 'Алиготе': 'Aligoté', 'Рислинг': 'Riesling', 'Ризлинг': 'Riesling', 'Рейнски Ризлинг': 'Rhine Riesling',
+  'Траминер': 'Traminer', 'Гевюрцтраминер': 'Gewürztraminer', 'Мускат Отонел': 'Muscat Ottonel', 'Мускат': 'Muscat',
+  'Мавруд': 'Mavrud', 'Мелник': 'Melnik', 'Широка мелнишка лоза': 'Shiroka Melnishka Loza', 'Димят': 'Dimiat', 'Гъмза': 'Gamza',
+  'Памид': 'Pamid', 'Ркацители': 'Rkatsiteli', 'Рубин': 'Rubin', 'Мискет': 'Misket', 'Червен мискет': 'Red Misket',
+  'Бургундско': 'Burgundy', 'Шампанско': 'Champagne', 'Просеко': 'Prosecco',
+}
+const DE_GRAPES = { 'Rhine Riesling': 'Rheinriesling', 'Red Misket': 'Roter Misket', 'Burgundy': 'Burgunder', 'Champagne': 'Champagner' }
+const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const GRAPE_KEYS = Object.keys(GRAPES).sort((a, b) => b.length - a.length)
+const GRAPE_RE = new RegExp('(?<![\\p{L}])(' + GRAPE_KEYS.map(k => esc(k).replace(/ /g, '\\s+')).join('|') + ')(?![\\p{L}])', 'giu')
+const GRAPE_LOW = Object.fromEntries(Object.entries(GRAPES).map(([k, v]) => [k.toLowerCase(), v]))
+
+// Превежда известните сортове, а останалата кирилица транслитерира
+function localize(lang, text) {
+  let out = '', last = 0
+  for (const m of text.matchAll(GRAPE_RE)) {
+    const g = GRAPE_LOW[m[1].toLowerCase().replace(/\s+/g, ' ')]
+    out += translit(text.slice(last, m.index)) + (lang === 'de' ? DE_GRAPES[g] || g : g)
+    last = m.index + m[0].length
+  }
+  return out + translit(text.slice(last))
+}
+
 const find = txt => CONTENT[txt] || CONTENT[(txt || '').trim().replace(/[!.]+$/, '')]
 
-// Ред на търсене: полета в базата (i18n.<lang>) -> речникът CONTENT -> латиница (за en/de) -> оригинал
+// Ред на търсене: полета в базата (i18n.<lang>) -> речникът CONTENT -> известни сортове + латиница (за en/de) -> оригинал
 export function tx(lang, bgText, fromDb) {
   if (lang === 'bg' || !bgText) return bgText
   if (typeof bgText !== 'string') return bgText
-  return fromDb || find(bgText)?.[lang] || translit(bgText)
+  return fromDb || find(bgText)?.[lang] || localize(lang, bgText)
 }
