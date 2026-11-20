@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { doc, collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from './firebase'
-import { WINE_COLORS, WINE_TASTES, CASA_IG, isCasa } from './util'
+import { WINE_COLORS, WINE_TASTES, CASA_IG, isCasa, isDrinksOnly } from './util'
 import { resolveMap, labelClass, pickArea } from './winemap'
 import casaLogo from './casa-noma-logo.png'
 
@@ -89,9 +89,15 @@ export default function Menu() {
   const link = u => (/^https?:\/\//i.test(u) ? u : `https://${u}`)
   const insta = rest.instagram ?? (isCasa(rest) ? CASA_IG : '')
   const ov = rest.coverIdentity ?? isCasa(rest) // лого, име и Instagram върху банера
-  const igOnImage = !!(rest.igOnImage && insta) // Instagram бутон върху самата снимка на банера
-  const showIg = !!insta && !rest.hideIg && !igOnImage
-  const showTag = !!rest.tagline && !rest.hideTagline
+  // Заведения като Casa Noma (само напитки) по подразбиране показват само снимката на банера – без лого, име, иконка и „Добре дошли“
+  const casaLike = isCasa(rest) || isDrinksOnly(rest)
+  const hideLogo = rest.hideLogo ?? casaLike
+  const hideIg = rest.hideIg ?? casaLike
+  const hideTag = rest.hideTagline ?? casaLike
+  const igOnImage = !!((rest.igOnImage ?? casaLike) && insta) // Instagram бутон върху самата снимка на банера
+  const showIg = !!insta && !hideIg && !igOnImage
+  const showTag = !!rest.tagline && !hideTag
+  const nameOff = !!rest.hideName || (ov && hideLogo && hideIg && hideTag)
   const showInfoBtn = hasInfo && !(rest.hideInfo ?? isCasa(rest))
 
   const all = (rest.categories || []).map(norm)
@@ -207,8 +213,8 @@ export default function Menu() {
     setTimeout(() => document.getElementById('list')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
   }
 
-  const showAvatar = !rest.hideLogo
-  const identEmpty = !showAvatar && rest.hideName && !showIg && !showTag
+  const showAvatar = !hideLogo
+  const identEmpty = !showAvatar && nameOff && !showIg && !showTag
   const ident = identEmpty ? null : (
           <div className={`idrow${rest.logoShape === 'free' ? ' vert' : ''}${showAvatar ? '' : ' noav'}`}>
             {showAvatar && (
@@ -218,7 +224,7 @@ export default function Menu() {
             )}
             <div className="idtext">
               <div className="idline">
-                {!rest.hideName && <h1 className="idname">{rest.name}</h1>}
+                {!nameOff && <h1 className="idname">{rest.name}</h1>}
                 {showIg && (
                   <a className="igbtn" href={link(insta)} target="_blank" rel="noreferrer" aria-label="Instagram">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -228,7 +234,7 @@ export default function Menu() {
                     </svg>
                   </a>
                 )}
-                {showIg && rest.hideName && rest.logoShape === 'free' && (
+                {showIg && nameOff && rest.logoShape === 'free' && (
                   <a className="iglabel" href={link(insta)} target="_blank" rel="noreferrer">{rest.name}</a>
                 )}
               </div>
@@ -241,7 +247,7 @@ export default function Menu() {
   const posterOn = ov && isCasa(rest)
   const poster = (
     <div className="poster">
-      {!rest.hideLogo && <img className="plogo" src={casaLogo} alt={rest.name} />}
+      {!hideLogo && <img className="plogo" src={casaLogo} alt={rest.name} />}
       <div className="prow">
         {showIg && (
           <a className="igrow" href={link(insta)} target="_blank" rel="noreferrer" aria-label={`Instagram ${rest.name}`}>

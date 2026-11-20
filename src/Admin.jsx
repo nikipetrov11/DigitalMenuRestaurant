@@ -477,13 +477,14 @@ function Categories({ docRef, catObjs, items, W }) {
 }
 
 function Look({ docRef, rest }) {
+  const casaLike = isCasa(rest) || /casa\s*noma/i.test(rest.name || '') || (rest.drinksOnly ?? false)
   const [v, setV] = useState({
     name: rest.name, theme: rest.theme || 'classic', hideName: !!rest.hideName, color: rest.color || '#e9b45c', currency: rest.currency || '€',
     logo: rest.logo || '', logoBg: rest.logoBg || 'dark', logoShape: rest.logoShape || 'circle', opens: rest.opens || '', closes: rest.closes || '',
     drinksOnly: rest.drinksOnly ?? /casa\s*noma/i.test(rest.name || ''), tagline: rest.tagline || '', wifi: rest.wifi || '', wifiPass: rest.wifiPass || '',
     address: rest.address || '', phone: rest.phone || '', facebook: rest.facebook || '', google: rest.google || '',
     hideStatus: !!rest.hideStatus, coverIdentity: rest.coverIdentity ?? isCasa(rest), instagram: rest.instagram ?? (isCasa(rest) ? CASA_IG : ''), hideInfo: rest.hideInfo ?? isCasa(rest),
-    hideLogo: !!rest.hideLogo, hideIg: !!rest.hideIg, hideTagline: !!rest.hideTagline, igOnImage: !!rest.igOnImage,
+    hideLogo: rest.hideLogo ?? casaLike, hideIg: rest.hideIg ?? casaLike, hideTagline: rest.hideTagline ?? casaLike, igOnImage: rest.igOnImage ?? casaLike,
     slides: rest.slides?.length ? rest.slides : rest.cover ? [rest.cover] : [],
   })
   const [msg, setMsg] = useState('')
@@ -517,6 +518,10 @@ function Look({ docRef, rest }) {
       <label className="check"><input type="checkbox" checked={v.hideName} onChange={e => setV({ ...v, hideName: e.target.checked })} /> Скрий името до логото (ако логото вече го съдържа)</label>
 
       <label className="check"><input type="checkbox" checked={v.coverIdentity} onChange={e => setV({ ...v, coverIdentity: e.target.checked })} /> Покажи логото, името и Instagram върху снимката на банера (като постер)</label>
+        <label className="check"><input type="checkbox" checked={v.hideLogo} onChange={e => setV({ ...v, hideLogo: e.target.checked })} /> Скрий кръглото лого</label>
+        <label className="check"><input type="checkbox" checked={v.hideIg} onChange={e => setV({ ...v, hideIg: e.target.checked })} /> Скрий Instagram иконата до името</label>
+        <label className="check"><input type="checkbox" checked={v.hideTagline} onChange={e => setV({ ...v, hideTagline: e.target.checked })} /> Скрий приветствието („Добре дошли“) върху банера</label>
+        <label className="check"><input type="checkbox" checked={v.igOnImage} onChange={e => setV({ ...v, igOnImage: e.target.checked })} /> Instagram бутонът е този от снимката (натиска се директно върху нея)</label>
 
       <label className="check"><input type="checkbox" checked={v.drinksOnly} onChange={e => setV({ ...v, drinksOnly: e.target.checked })} /> Само напитки (в панела пише „напитки“ вместо „ястия“)</label>
 
@@ -598,10 +603,6 @@ function Look({ docRef, rest }) {
         <strong>Instagram</strong>
         <label>Instagram профил (линк) <input value={v.instagram} onChange={e => setV({ ...v, instagram: e.target.value })} placeholder="https://www.instagram.com/..." /></label>
         <p className="muted" style={{ margin: 0 }}>Показва се като иконка вдясно от името. Остави празно, за да не се показва.</p>
-        <label className="check"><input type="checkbox" checked={v.hideLogo} onChange={e => setV({ ...v, hideLogo: e.target.checked })} /> Скрий кръглото лого</label>
-        <label className="check"><input type="checkbox" checked={v.hideIg} onChange={e => setV({ ...v, hideIg: e.target.checked })} /> Скрий Instagram иконата до името</label>
-        <label className="check"><input type="checkbox" checked={v.hideTagline} onChange={e => setV({ ...v, hideTagline: e.target.checked })} /> Скрий приветствието („Добре дошли“) върху банера</label>
-        <label className="check"><input type="checkbox" checked={v.igOnImage} onChange={e => setV({ ...v, igOnImage: e.target.checked })} /> Instagram бутонът е този от снимката (натиска се директно върху нея)</label>
         <label className="check"><input type="checkbox" checked={v.hideInfo} onChange={e => setV({ ...v, hideInfo: e.target.checked })} /> Скрий бутона „Информация“ в менюто</label>
       </div>
 
