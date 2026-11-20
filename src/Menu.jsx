@@ -78,8 +78,9 @@ export default function Menu() {
   const idx = slides.length ? slide % slides.length : 0
   const cur = rest.currency || '€'
   const L = rest.i18n?.[lang] || {}
-  const nameOf = i => tx(lang, i.name, i.i18n?.[lang]?.name)
-  const descOf = i => tx(lang, i.desc, i.i18n?.[lang]?.desc)
+  const isW = i => !!(i.wineColor || i.taste || i.area || i.grape || i.wineType)
+  const nameOf = i => tx(lang, i.name, i.i18n?.[lang]?.name, isW(i))
+  const descOf = i => tx(lang, i.desc, i.i18n?.[lang]?.desc, isW(i))
   const catLabel = n => tx(lang, n, L.categories?.[n])
   const byName = (a, b) => nameOf(a).localeCompare(nameOf(b), lang)
   const tagline = tx(lang, rest.tagline, L.tagline)
@@ -162,7 +163,7 @@ export default function Menu() {
   const colorLabel = k => WINE.colors[lang][k] || WINE_COLORS.find(([x]) => x === k)?.[1]
   const areaLabel = id => areaNameOf(wm.areas.find(a => a.id === id))
   const wline1 = (i, hideArea) => [colorLabel(i.wineColor), i.year, !hideArea && areaLabel(i.area)].filter(Boolean).join(' · ')
-  const wline2 = i => [tx(lang, i.grape, i.i18n?.[lang]?.grape), tx(lang, i.wineType, i.i18n?.[lang]?.wineType), tx(lang, i.region, i.i18n?.[lang]?.region)].filter(Boolean).join(' · ')
+  const wline2 = i => [tx(lang, i.grape, i.i18n?.[lang]?.grape, true), tx(lang, i.wineType, i.i18n?.[lang]?.wineType, true), tx(lang, i.region, i.i18n?.[lang]?.region, true)].filter(Boolean).join(' · ')
   // цена на вино: на чаша (с мл) е основната, бутилката е по желание
   const wprice = (i, m) => {
     const g = hasGlass(i), b = hasBottle(i)

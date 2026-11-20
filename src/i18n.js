@@ -132,12 +132,10 @@ export const translit = s =>
     return c === c.toLowerCase() ? l : l[0].toUpperCase() + l.slice(1)
   })
 
-// Известни сортове и винени имена: българският текст -> общоприетото име (не се транслитерира).
-// Ключът може да е с няколко думи; различните изписвания на едно и също име са отделни редове.
-// Намира се навсякъде в текста (име на вино, сорт, описание), а останалото се превежда/транслитерира както преди.
-const GRAPES = {
+// Известни сортове и имена на изби: българският текст -> общоприетото име (не се транслитерира).
+// Различните изписвания на едно и също име са отделни редове. Работи за всички текстове.
+const NAMES = {
   'Каберне Совиньон': 'Cabernet Sauvignon', 'Каберне Сувиньон': 'Cabernet Sauvignon', 'Каберне Сьовиньон': 'Cabernet Sauvignon',
-  'Каберне Совиньо': 'Cabernet Sauvignon', 'Кабернe Совиньон': 'Cabernet Sauvignon',
   'Каберне Фран': 'Cabernet Franc', 'Каберне': 'Cabernet',
   'Совиньон Блан': 'Sauvignon Blanc', 'Сувиньон Блан': 'Sauvignon Blanc', 'Совиньон': 'Sauvignon', 'Сувиньон': 'Sauvignon',
   'Мерло': 'Merlot', 'Шардоне': 'Chardonnay', 'Пино Ноар': 'Pinot Noir', 'Пино Гри': 'Pinot Gris', 'Пино Гриджо': 'Pinot Grigio',
@@ -145,22 +143,54 @@ const GRAPES = {
   'Темпранийо': 'Tempranillo', 'Санджовезе': 'Sangiovese', 'Небиоло': 'Nebbiolo', 'Зинфандел': 'Zinfandel', 'Вионие': 'Viognier',
   'Пти Вердо': 'Petit Verdot', 'Алиготе': 'Aligoté', 'Рислинг': 'Riesling', 'Ризлинг': 'Riesling', 'Рейнски Ризлинг': 'Rhine Riesling',
   'Траминер': 'Traminer', 'Гевюрцтраминер': 'Gewürztraminer', 'Мускат Отонел': 'Muscat Ottonel', 'Мускат': 'Muscat',
+  'Семийон': 'Sémillon', 'Семилон': 'Sémillon', 'Коломбар': 'Colombard', 'Колумбар': 'Colombard', 'Уни Блан': 'Ugni Blanc',
   'Мавруд': 'Mavrud', 'Мелник': 'Melnik', 'Широка мелнишка лоза': 'Shiroka Melnishka Loza', 'Димят': 'Dimiat', 'Гъмза': 'Gamza',
   'Памид': 'Pamid', 'Ркацители': 'Rkatsiteli', 'Рубин': 'Rubin', 'Мискет': 'Misket', 'Червен мискет': 'Red Misket',
   'Бургундско': 'Burgundy', 'Шампанско': 'Champagne', 'Просеко': 'Prosecco',
+  // изби
+  'Вила Юстина': 'Villa Yustina', 'Вила Мелник': 'Villa Melnik', 'Домейн Бойар': 'Domaine Boyar', 'Загреус': 'Zagreus',
+  'Логодаж': 'Logodaj', 'Старосел': 'Starosel', 'Дамяница': 'Damianitza', 'Телиш': 'Telish', 'Катаржина': 'Katarzyna',
+  'Едоардо Миролио': 'Edoardo Miroglio', 'Шато Копса': 'Château Copsa',
 }
-const DE_GRAPES = { 'Rhine Riesling': 'Rheinriesling', 'Red Misket': 'Roter Misket', 'Burgundy': 'Burgunder', 'Champagne': 'Champagner' }
-const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-const GRAPE_KEYS = Object.keys(GRAPES).sort((a, b) => b.length - a.length)
-const GRAPE_RE = new RegExp('(?<![\\p{L}])(' + GRAPE_KEYS.map(k => esc(k).replace(/ /g, '\\s+')).join('|') + ')(?![\\p{L}])', 'giu')
-const GRAPE_LOW = Object.fromEntries(Object.entries(GRAPES).map(([k, v]) => [k.toLowerCase(), v]))
+const NAMES_DE = { 'Rhine Riesling': 'Rheinriesling', 'Red Misket': 'Roter Misket', 'Burgundy': 'Burgunder', 'Champagne': 'Champagner' }
 
-// Превежда известните сортове, а останалата кирилица транслитерира
-function localize(lang, text) {
+// Думи от винената карта (само за вина): цвят, вкус, начин на производство
+const COLORS = {
+  'бяло': ['white', 'weiß'], 'бяла': ['white', 'weiß'], 'бели': ['white', 'weiß'],
+  'червено': ['red', 'rot'], 'червена': ['red', 'rot'], 'червени': ['red', 'rot'],
+  'розе': ['rosé', 'Rosé'], 'пенливо': ['sparkling', 'Schaumwein'], 'пенливи': ['sparkling', 'Schaumwein'],
+  'оранжево': ['orange', 'orange'],
+}
+const TASTES = {
+  'сухо': ['dry', 'trocken'], 'суха': ['dry', 'trocken'], 'сухи': ['dry', 'trocken'],
+  'полусухо': ['off-dry', 'halbtrocken'], 'полусуха': ['off-dry', 'halbtrocken'],
+  'полусладко': ['medium-sweet', 'lieblich'], 'полусладка': ['medium-sweet', 'lieblich'],
+  'сладко': ['sweet', 'süß'], 'сладка': ['sweet', 'süß'],
+}
+const WORDS = {
+  'и': ['and', 'und'], 'шарма': ['Charmat', 'Charmat'], 'купаж': ['blend', 'Cuvée'], 'резерва': ['Reserve', 'Reserve'],
+  'ризерва': ['Reserve', 'Riserva'], 'розово': ['rosé', 'Rosé'], 'бъчва': ['barrel', 'Fass'],
+  'класически метод': ['traditional method', 'klassische Flaschengärung'],
+}
+// „бяло сухо“ -> „dry white“ / „Weiß, trocken“ (и обратният ред)
+for (const [c, [ce, cd]] of Object.entries(COLORS)) for (const [t, [te, td]] of Object.entries(TASTES)) {
+  WORDS[`${c} ${t}`] = WORDS[`${t} ${c}`] = [`${te} ${ce}`, `${cd[0].toUpperCase()}${cd.slice(1)}, ${td}`]
+}
+Object.assign(WORDS, COLORS, TASTES)
+
+const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const mk = keys => new RegExp('(?<![\\p{L}])(' + [...keys].sort((a, b) => b.length - a.length).map(k => esc(k).replace(/ /g, '\\s+')).join('|') + ')(?![\\p{L}])', 'giu')
+const NAME_MAP = Object.fromEntries(Object.entries(NAMES).map(([k, v]) => [k.toLowerCase(), [v, NAMES_DE[v] || v]]))
+const ALL_MAP = { ...WORDS, ...NAME_MAP }
+const NAME_RE = mk(Object.keys(NAME_MAP)), ALL_RE = mk(Object.keys(ALL_MAP))
+
+// Превежда известните имена (и при вина: цвят, вкус, „и“), а останалата кирилица транслитерира
+function localize(lang, text, wine) {
+  const map = wine ? ALL_MAP : NAME_MAP
   let out = '', last = 0
-  for (const m of text.matchAll(GRAPE_RE)) {
-    const g = GRAPE_LOW[m[1].toLowerCase().replace(/\s+/g, ' ')]
-    out += translit(text.slice(last, m.index)) + (lang === 'de' ? DE_GRAPES[g] || g : g)
+  for (const m of text.matchAll(wine ? ALL_RE : NAME_RE)) {
+    const v = map[m[1].toLowerCase().replace(/\s+/g, ' ')]
+    out += translit(text.slice(last, m.index)) + v[lang === 'de' ? 1 : 0]
     last = m.index + m[0].length
   }
   return out + translit(text.slice(last))
@@ -168,9 +198,10 @@ function localize(lang, text) {
 
 const find = txt => CONTENT[txt] || CONTENT[(txt || '').trim().replace(/[!.]+$/, '')]
 
-// Ред на търсене: полета в базата (i18n.<lang>) -> речникът CONTENT -> известни сортове + латиница (за en/de) -> оригинал
-export function tx(lang, bgText, fromDb) {
+// Ред на търсене: полета в базата (i18n.<lang>) -> речникът CONTENT -> известни имена + латиница (за en/de) -> оригинал
+// wine = true за вината: превежда и цвят, вкус и „и“
+export function tx(lang, bgText, fromDb, wine = false) {
   if (lang === 'bg' || !bgText) return bgText
   if (typeof bgText !== 'string') return bgText
-  return fromDb || find(bgText)?.[lang] || localize(lang, bgText)
+  return fromDb || find(bgText)?.[lang] || localize(lang, bgText, wine)
 }
