@@ -498,3 +498,12 @@ header > .status { margin: 12px 20px 0; }
 .cover.ov .idname { color: #fff; font: 500 clamp(1.3rem, 6vw, 2rem)/1.12 'Playfair Display', Georgia, serif; letter-spacing: .01em; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
 .cover.ov .igbtn { color: #d2b36e; }
 .cover.ov .tagline { margin-top: 8px; color: #d2b36e; font: 500 clamp(1rem, 4.6vw, 1.35rem)/1.2 'Playfair Display', Georgia, serif; font-style: normal; text-shadow: 0 2px 8px rgba(0,0,0,.6); }
+
+/* ---- Име + Instagram на един ред, и на телефон ---- */
+.cover.ov .idrow { gap: 12px; }
+.cover.ov .avatar { width: clamp(72px, 20vw, 104px); height: clamp(72px, 20vw, 104px); }
+.cover.ov .idline { flex-wrap: nowrap; gap: 8px; }
+.cover.ov .idname { white-space: nowrap; font-size: clamp(1rem, 4.7vw, 2rem); }
+.cover.ov .igbtn { width: 24px; height: 24px; }
+.cover.ov .igbtn svg { width: 24px; height: 24px; }
+.cover.ov .tagline { font-size: clamp(.95rem, 4.2vw, 1.35rem); }
