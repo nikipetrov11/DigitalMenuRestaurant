@@ -627,7 +627,7 @@ function Look({ docRef, rest }) {
 function MapTab({ docRef, rest, items }) {
   const base = resolveMap(rest)
   const [v, setV] = useState({
-    on: base.on,
+    on: base.on, names: base.names, size: base.size,
     areas: base.areas.map(a => ({ ...a })),
     image: rest.wineMap?.image || '', ratio: rest.wineMap?.ratio || 0,
     bg: rest.wineMap?.bg || '', bottle: rest.wineMap?.bottle || '',
@@ -693,7 +693,7 @@ function MapTab({ docRef, rest, items }) {
     setMsg('')
     const areas = v.areas.map(a => ({ id: a.id, name: a.name.trim(), x: a.x, y: a.y, side: a.side || 'b', bottle: a.bottle || '' }))
     if (areas.some(a => !a.name)) return setMsg('Всяка област трябва да има име.')
-    const wineMap = { on: v.on, areas, image: v.image, ratio: v.ratio, bg: v.bg, bottle: v.bottle }
+    const wineMap = { on: v.on, names: v.names, size: v.size, areas, image: v.image, ratio: v.ratio, bg: v.bg, bottle: v.bottle }
     if (JSON.stringify({ ...rest, wineMap }).length > 950000) return setMsg('Снимките са твърде тежки. Върни стандартната карта или фон.')
     try {
       await updateDoc(docRef, { wineMap })
@@ -707,9 +707,13 @@ function MapTab({ docRef, rest, items }) {
     <form onSubmit={save} className="stack card">
       <h2>Карта на винените области</h2>
       <label className="check"><input type="checkbox" checked={v.on} onChange={e => setV({ ...v, on: e.target.checked })} /> Показвай картата във винената карта на менюто</label>
+      <label className="check"><input type="checkbox" checked={v.names} onChange={e => setV({ ...v, names: e.target.checked })} /> Показвай имената на областите до бутилките (изключено: остава само броят вина)</label>
+      <label>Размер на бутилките: ×{Number(v.size).toFixed(1)}
+        <input type="range" min="0.8" max="2.4" step="0.1" value={v.size} onChange={e => setV({ ...v, size: Number(e.target.value) })} />
+      </label>
       <p className="muted">Хвани бутилка и я дръпни върху желаната област. Всяка област може да има своя бутилка (PNG). Така показваш къде са вината от нея. Във формата на всяко вино избираш областта му.</p>
 
-      <div className="wmapedit" style={{ '--fon': `url("${v.bg || DEFAULT_BG}")`, '--accent': rest.color || '#e9b45c', '--on-accent': '#1a1a1a' }}>
+      <div className="wmapedit" style={{ '--fon': `url("${v.bg || DEFAULT_BG}")`, '--accent': rest.color || '#e9b45c', '--on-accent': '#1a1a1a', '--bs': v.size }}>
         <div className="wmapbox">
           <div className="wmap" ref={box} style={{ aspectRatio: ratio }}
             onPointerMove={e => { if (drag.current) move(drag.current, e) }}

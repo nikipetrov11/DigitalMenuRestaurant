@@ -510,3 +510,36 @@ header > .status { margin: 12px 20px 0; }
 
 /* ---- По-ниска снимка на банера ---- */
 .cover.ov { height: clamp(200px, 52vw, 290px); }
+
+/* ---- Компактна горна част: картата се вижда без скролване ---- */
+.cover.ov { height: clamp(150px, 40vw, 230px); }
+.meta { margin: 12px 20px 10px; }
+.sticky .pills { padding: 8px 20px 10px; }
+.luxe .pills button { padding: 9px 18px; }
+.sec h2 { margin: 6px 0 2px 6px; }
+.luxe .sec h2 { font-size: 1.4rem; }
+
+/* ---- Карта с дълбочина (леко 3D) ---- */
+.wmapbox { padding: 6px 0 4px; }
+.wmapbox.d3 .wmap { transform: perspective(1100px) rotateX(16deg); transform-origin: 50% 70%; margin-bottom: -2%; }
+.wmapbox.d3 .wmap > img { filter: drop-shadow(0 1px 0 #5b4a30) drop-shadow(0 2px 0 #54442b) drop-shadow(0 3px 0 #4d3e27) drop-shadow(0 4px 0 #463823) drop-shadow(0 5px 0 #3f321f) drop-shadow(0 6px 0 #382d1c) drop-shadow(0 16px 16px rgba(0,0,0,.6)); }
+
+/* ---- Размер на бутилките (от админа) ---- */
+.wpin { width: calc(30px * var(--bs, 1)); }
+@supports (container-type: inline-size) {
+  .wpin { width: calc(clamp(16px, 3.6cqw, 38px) * var(--bs, 1)); }
+}
+
+/* ---- Основа под бутилката и ясна избрана бутилка ---- */
+.wpin::before { content: ""; position: absolute; left: 50%; bottom: -2%; width: 150%; height: 26%; transform: translateX(-50%); border: 1.5px solid rgba(255,255,255,.28); border-radius: 50%; pointer-events: none; }
+.wpin.on { filter: drop-shadow(0 0 8px var(--accent)) drop-shadow(0 2px 3px rgba(0,0,0,.6)); }
+.wpin.on::before { border: 2px solid var(--accent); box-shadow: 0 0 10px var(--accent), inset 0 0 8px color-mix(in srgb, var(--accent) 50%, transparent); animation: wring 1.4s ease-out infinite; }
+@keyframes wring { from { opacity: 1; width: 110%; } to { opacity: .25; width: 190%; } }
+.wmap.sel .wpin:not(.on):not(.none) { opacity: .55; }
+.wpin.on .wlab small { color: var(--accent); }
+.wdrop > header .whbt { flex: none; width: 20px; height: 40px; color: var(--accent); filter: drop-shadow(0 0 6px var(--accent)); }
+.whbt svg, .whbt img { display: block; height: 100%; width: auto; }
+
+/* ---- Без имена: остава само броят вина ---- */
+.wmap.nonames .wlab { display: none; }
+.wmap.nonames .wpin b { display: block; bottom: -4px; right: -4px; }

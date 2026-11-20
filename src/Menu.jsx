@@ -337,8 +337,8 @@ export default function Menu() {
             <>
               <h2>{title} <small>{count} {count === 1 ? 'продукт' : 'продукта'}</small></h2>
               {mapView && (
-                <div className="wmapbox" style={{ '--fon': `url("${wm.bg}")` }}>
-                  <div className="wmap" style={{ aspectRatio: wm.ratio }}>
+                <div className="wmapbox d3" style={{ '--fon': `url("${wm.bg}")`, '--bs': wm.size }}>
+                  <div className={`wmap${area ? ' sel' : ''}${wm.names ? '' : ' nonames'}`} style={{ aspectRatio: wm.ratio }}>
                     <img src={wm.image} alt="Карта на винените райони на България" />
                     {wm.areas.map(a => {
                       const n = areaCount(a.id)
@@ -364,6 +364,7 @@ export default function Menu() {
               {mapView && area && (
                 <section className="wdrop" id="wdrop" aria-label={areaName}>
                   <header>
+                    <span className="whbt"><Bottle src={wm.areas.find(a => a.id === area)?.bottle || wm.bottle} /></span>
                     <div>
                       <strong>{areaName}</strong>
                       <small>{inArea.length} {inArea.length === 1 ? 'вино' : 'вина'}</small>

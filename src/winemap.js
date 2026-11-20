@@ -16,6 +16,8 @@ export function resolveMap(rest) {
     ratio: w.image && w.ratio ? w.ratio : DEFAULT_RATIO,
     bg: w.bg || fonImg,
     bottle: w.bottle || '',
+    names: w.names ?? true,
+    size: Number(w.size) > 0 ? Number(w.size) : 1,
   }
 }
 
