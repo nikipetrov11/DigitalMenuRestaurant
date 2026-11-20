@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   onAuthStateChanged, signOut,
   signInWithEmailAndPassword,
@@ -10,6 +10,7 @@ import {
 import { auth, db } from './firebase'
 import QRCode from 'qrcode'
 import { fileToDataUrl, WINE_COLORS, WINE_TASTES, WINE_AREAS, isWineCat, isAlcCat } from './util'
+import { resolveMap, DEFAULT_MAP, DEFAULT_BG } from './winemap'
 
 const SUGGEST = ['Салати', 'Предястия', 'Основни ястия', 'Пици', 'Паста', 'Десерти', 'Напитки']
 const COLORS = ['#e9b45c', '#e8691a', '#c0392b', '#1f6b4f', '#1d4e89', '#333333']
@@ -96,19 +97,20 @@ function Dashboard({ slug }) {
         <a className="btn" href={`/${slug}`} target="_blank" rel="noreferrer">Виж менюто</a>
       </div>
       <div className="tabs">
-        {[['items', W.tab], ['cats', 'Категории'], ['look', 'Външен вид'], ['qr', 'QR код']].map(([k, t]) => (
+        {[['items', W.tab], ['cats', 'Категории'], ...(drinks || items.some(i => i.wineColor || i.taste) ? [['map', 'Карта']] : []), ['look', 'Външен вид'], ['qr', 'QR код']].map(([k, t]) => (
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t}</button>
         ))}
       </div>
-      {tab === 'items' && <Dishes docRef={docRef} col={col} items={items} catObjs={catObjs} cur={rest.currency || '€'} W={W} />}
+      {tab === 'items' && <Dishes docRef={docRef} col={col} items={items} catObjs={catObjs} cur={rest.currency || '€'} W={W} areas={resolveMap(rest).areas} />}
       {tab === 'cats' && <Categories docRef={docRef} catObjs={catObjs} items={items} W={W} />}
+      {tab === 'map' && <MapTab docRef={docRef} rest={rest} items={items} />}
       {tab === 'look' && <Look docRef={docRef} rest={rest} />}
       {tab === 'qr' && <QrTab slug={slug} name={rest.name} />}
     </>
   )
 }
 
-function Dishes({ docRef, col, items, catObjs, cur, W }) {
+function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
   const cats = catObjs.map(c => c.name)
   const empty = { name: '', price: '', category: '', newCat: '', desc: '', photo: '', featured: false, wineColor: '', taste: '', area: '', grape: '', region: '', year: '', volume: '', glass: '' }
   const [f, setF] = useState(empty)
@@ -238,7 +240,8 @@ function Dishes({ docRef, col, items, catObjs, cur, W }) {
               <label>Област на картата
                 <select value={f.area} onChange={set('area')}>
                   <option value="">— без област —</option>
-                  {WINE_AREAS.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  {f.area && !areas.some(x => x.id === f.area) && <option value={f.area}>(изтрита област)</option>}
+                  {areas.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                 </select>
               </label>
             )}
@@ -590,6 +593,149 @@ function Look({ docRef, rest }) {
           <option value="лв.">лв.</option>
         </select>
       </label>
+
+      <button>Запази</button>
+      {msg && <p className={msg.startsWith('Запазено') ? 'ok' : 'err'}>{msg}</p>}
+    </form>
+  )
+}
+
+function MapTab({ docRef, rest, items }) {
+  const base = resolveMap(rest)
+  const [v, setV] = useState({
+    on: base.on,
+    areas: base.areas.map(a => ({ ...a })),
+    image: rest.wineMap?.image || '', ratio: rest.wineMap?.ratio || 0,
+    bg: rest.wineMap?.bg || '', bottle: rest.wineMap?.bottle || '',
+  })
+  const [sel, setSel] = useState(base.areas[0]?.id || '')
+  const [newName, setNewName] = useState('')
+  const [msg, setMsg] = useState('')
+  const box = useRef(null)
+  const drag = useRef('')
+  const ratio = v.image && v.ratio ? v.ratio : 903 / 604
+  const SIDES = [['b', 'Името отдолу'], ['t', 'Името отгоре'], ['r', 'Името вдясно'], ['l', 'Името вляво']]
+
+  const setArea = (id, patch) => setV(p => ({ ...p, areas: p.areas.map(a => (a.id === id ? { ...a, ...patch } : a)) }))
+  function move(id, e) {
+    const r = box.current.getBoundingClientRect()
+    const c = n => Math.round(Math.min(100, Math.max(0, n)) * 10) / 10
+    setArea(id, { x: c(((e.clientX - r.left) / r.width) * 100), y: c(((e.clientY - r.top) / r.height) * 100) })
+  }
+  function addArea() {
+    const name = newName.trim()
+    if (!name) return
+    const id = 'a' + Date.now().toString(36)
+    setV(p => ({ ...p, areas: [...p.areas, { id, name, x: 50, y: 50, side: 'b' }] }))
+    setSel(id)
+    setNewName('')
+  }
+  function removeArea(a) {
+    const n = items.filter(i => i.area === a.id).length
+    if (!confirm(n ? `В „${a.name}“ има ${n} вина. Те няма да се губят, но ще останат без област. Махане на областта?` : `Махане на „${a.name}“?`)) return
+    setV(p => ({ ...p, areas: p.areas.filter(x => x.id !== a.id) }))
+  }
+  async function pick(key, e) {
+    const file = e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    setMsg('')
+    try {
+      if (key === 'image') {
+        const url = await fileToDataUrl(file, 900, 0.82, 'image/webp')
+        const r = await new Promise(res => { const im = new Image(); im.onload = () => res(im.width / im.height); im.onerror = () => res(0); im.src = url })
+        setV(p => ({ ...p, image: url, ratio: Math.round(r * 1000) / 1000 }))
+      } else if (key === 'bg') {
+        setV(p => ({ ...p, bg: '' }))
+        const url = await fileToDataUrl(file, 1000, 0.6)
+        setV(p => ({ ...p, bg: url }))
+      } else {
+        const url = await fileToDataUrl(file, 160, 1, 'image/png')
+        setV(p => ({ ...p, bottle: url }))
+      }
+    } catch {
+      setMsg('Снимката не се зареди.')
+    }
+  }
+  async function save(e) {
+    e.preventDefault()
+    setMsg('')
+    const areas = v.areas.map(a => ({ id: a.id, name: a.name.trim(), x: a.x, y: a.y, side: a.side || 'b' }))
+    if (areas.some(a => !a.name)) return setMsg('Всяка област трябва да има име.')
+    const wineMap = { on: v.on, areas, image: v.image, ratio: v.ratio, bg: v.bg, bottle: v.bottle }
+    if (JSON.stringify({ ...rest, wineMap }).length > 950000) return setMsg('Снимките са твърде тежки. Върни стандартната карта или фон.')
+    try {
+      await updateDoc(docRef, { wineMap })
+      setMsg('Запазено ✓')
+    } catch (ex) {
+      setMsg('Не се запази: ' + (ex.code || ex.message))
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="stack card">
+      <h2>Карта на винените области</h2>
+      <label className="check"><input type="checkbox" checked={v.on} onChange={e => setV({ ...v, on: e.target.checked })} /> Показвай картата във винената карта на менюто</label>
+      <p className="muted">Хвани бутилка и я дръпни върху желаната област. Така показваш къде са вината от нея. Във формата на всяко вино избираш областта му.</p>
+
+      <div className="wmapedit" style={{ '--fon': `url("${v.bg || DEFAULT_BG}")`, '--accent': rest.color || '#e9b45c', '--on-accent': '#1a1a1a' }}>
+        <div className="wmapbox">
+          <div className="wmap" ref={box} style={{ aspectRatio: ratio }}
+            onPointerMove={e => { if (drag.current) move(drag.current, e) }}
+            onPointerUp={() => { drag.current = '' }} onPointerCancel={() => { drag.current = '' }}
+            onClick={e => { if (sel && e.target === e.currentTarget) move(sel, e) }}>
+            <img src={v.image || DEFAULT_MAP} alt="Карта" />
+            {v.areas.map(a => (
+              <button type="button" key={a.id} className={`wpin${sel === a.id ? ' on' : ''}`} style={{ left: `${a.x}%`, top: `${a.y}%` }}
+                aria-label={a.name}
+                onPointerDown={e => { e.preventDefault(); setSel(a.id); drag.current = a.id; e.currentTarget.setPointerCapture(e.pointerId) }}
+                onClick={e => e.stopPropagation()}>
+                {v.bottle ? <img src={v.bottle} alt="" /> : (
+                  <svg viewBox="0 0 24 48" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9.5 1h5v3h-.8v9.5c0 2 4.3 3.6 4.3 9.5v21a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V23c0-5.900 4.300-7.500 4.300-9.500V4h-.8z" /></svg>
+                )}
+                <span className={`wlab ${a.side || 'b'}`}><em>{a.name || '…'}</em></span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <strong>Области ({v.areas.length})</strong>
+        <div className="stack" style={{ marginTop: 8 }}>
+          {v.areas.map(a => (
+            <div key={a.id} className={`arow${sel === a.id ? ' on' : ''}`} onClick={() => setSel(a.id)}>
+              <input value={a.name} onChange={e => setArea(a.id, { name: e.target.value })} aria-label="Име на областта" />
+              <select value={a.side || 'b'} onChange={e => setArea(a.id, { side: e.target.value })} aria-label="Къде да е името">
+                {SIDES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              </select>
+              <button type="button" className="link" onClick={ev => { ev.stopPropagation(); removeArea(a) }}>Махни</button>
+            </div>
+          ))}
+          <div className="row2">
+            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Нова област, напр. Мелнишки район"
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addArea() } }} />
+            <button type="button" onClick={addArea}>Добави област</button>
+          </div>
+          <button type="button" className="link" onClick={() => { setV(p => ({ ...p, areas: WINE_AREAS.map(a => ({ ...a })) })); setSel(WINE_AREAS[0].id) }}>Върни 9-те стандартни области</button>
+        </div>
+      </div>
+
+      <div className="stack">
+        <strong>Снимки (по желание)</strong>
+        <label>Карта (най-добре PNG с прозрачен фон)
+          <input type="file" accept="image/*" onChange={e => pick('image', e)} />
+        </label>
+        {v.image && <button type="button" className="link" onClick={() => setV({ ...v, image: '', ratio: 0 })}>Върни стандартната карта</button>}
+        <label>Фон зад картата
+          <input type="file" accept="image/*" onChange={e => pick('bg', e)} />
+        </label>
+        {v.bg && <button type="button" className="link" onClick={() => setV({ ...v, bg: '' })}>Върни стандартния фон</button>}
+        <label>Икона на бутилката (PNG)
+          <input type="file" accept="image/*" onChange={e => pick('bottle', e)} />
+        </label>
+        {v.bottle && <button type="button" className="link" onClick={() => setV({ ...v, bottle: '' })}>Върни стандартната бутилка</button>}
+      </div>
 
       <button>Запази</button>
       {msg && <p className={msg.startsWith('Запазено') ? 'ok' : 'err'}>{msg}</p>}

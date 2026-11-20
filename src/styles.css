@@ -343,7 +343,7 @@ header > .status { margin: 12px 20px 0; }
 /* ===== карта на винените области ===== */
 .wmapbox { margin: 4px 6px 18px; }
 .wmap { position: relative; width: 100%; aspect-ratio: 903 / 604; }
-.wmap img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(0,0,0,.35)); pointer-events: none; }
+.wmap > img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(0,0,0,.35)); pointer-events: none; }
 .wpin { position: absolute; transform: translate(-50%, -62%); display: grid; place-items: center; width: 30px; min-height: 0; padding: 0; color: #fff; background: none; border: 0; filter: drop-shadow(0 2px 3px rgba(0,0,0,.6)); transition: transform .2s; }
 .wpin svg { width: 100%; height: auto; display: block; color: #7a1f2b; stroke: #fff; stroke-width: 1.6; paint-order: stroke; }
 .wpin b { position: absolute; bottom: -7px; right: -7px; min-width: 17px; height: 17px; padding: 0 4px; font: 800 .65rem/17px Montserrat, sans-serif; color: var(--on-accent); text-align: center; background: var(--accent); border-radius: 9px; }
@@ -361,3 +361,26 @@ header > .status { margin: 12px 20px 0; }
 .wmapbox { position: relative; isolation: isolate; padding: 18px 0 8px; }
 .wmapbox::before { content: ""; position: absolute; inset: 0 -14px; z-index: -1; background: var(--fon) center / cover no-repeat; opacity: .32; pointer-events: none;
   -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 78%, transparent); mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 78%, transparent); }
+
+/* имена на областите до бутилките */
+.wlab { position: absolute; width: 7.6em; font-size: clamp(.5rem, 2vw, .8rem); line-height: 1.15; text-align: center; color: #fff; pointer-events: none; text-shadow: 0 1px 3px #000, 0 0 7px #000; }
+.wlab em { display: block; font-style: normal; font-weight: 700; }
+.wlab small { display: block; margin-top: 1px; font-size: .88em; font-weight: 600; opacity: .85; }
+.wlab.b { top: 100%; left: 50%; transform: translateX(-50%); margin-top: 3px; }
+.wlab.t { bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 3px; }
+.wlab.r { left: 100%; top: 50%; transform: translateY(-50%); margin-left: 4px; text-align: left; }
+.wlab.l { right: 100%; top: 50%; transform: translateY(-50%); margin-right: 4px; text-align: right; }
+.wpin.on .wlab { color: var(--accent); }
+.wpin.none .wlab { opacity: .75; }
+
+.wpin img { display: block; width: 100%; height: auto; }
+.bt img { display: block; height: 100%; width: auto; }
+/* редактор на картата в админа */
+.wmapedit { padding: 8px 0; overflow: hidden; background: #0c0a0a; border-radius: 14px; }
+.wmapedit .wpin { cursor: grab; touch-action: none; }
+.wmapedit .wpin:active { cursor: grabbing; }
+.wmapedit .wlab { font-size: clamp(.55rem, 2vw, .8rem); }
+.arow { display: grid; grid-template-columns: 1fr 120px auto; gap: 8px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 12px; }
+.arow.on { border-color: var(--accent); background: #faf9f6; }
+.arow input, .arow select { min-width: 0; }
+@media (max-width: 520px) { .arow { grid-template-columns: 1fr 1fr; } .arow .link { justify-self: start; } .arow input { grid-column: 1 / -1; } }

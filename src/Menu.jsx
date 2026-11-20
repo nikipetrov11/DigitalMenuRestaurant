@@ -2,11 +2,10 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { doc, collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from './firebase'
-import { WINE_COLORS, WINE_TASTES, WINE_AREAS } from './util'
-import mapImg from './vino-karta.webp'
-import fonImg from './vino-fon.webp'
+import { WINE_COLORS, WINE_TASTES } from './util'
+import { resolveMap } from './winemap'
 
-const Bottle = () => (
+const Bottle = ({ src }) => src ? <img src={src} alt="" aria-hidden="true" /> : (
   <svg viewBox="0 0 24 48" aria-hidden="true" focusable="false">
     <path fill="currentColor" d="M9.5 1h5v3h-.8v9.5c0 2 4.3 3.6 4.3 9.5v21a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V23c0-5.900 4.300-7.500 4.300-9.500V4h-.8z" />
   </svg>
@@ -75,6 +74,8 @@ export default function Menu() {
   const money = i => `${Number(i.price).toFixed(2)} ${cur}`
   const status = openStatus(rest.opens, rest.closes)
   const hasInfo = !!(rest.opens || rest.wifi || rest.address || rest.phone || rest.facebook || rest.google)
+  const wm = resolveMap(rest)
+  const showMap = wm.on && wm.areas.length > 0
   const link = u => (/^https?:\/\//i.test(u) ? u : `https://${u}`)
 
   const all = (rest.categories || []).map(norm)
@@ -103,8 +104,8 @@ export default function Menu() {
   const anyGlass = isWine && shown.some(hasGlass)
   const mode = anyGlass && wMode === 'glass' ? 'glass' : 'bottle'
   const areaCount = k => shown.filter(i => i.area === k).length
-  const area = isWine && wArea && areaCount(wArea) ? wArea : ''
-  const areaName = WINE_AREAS.find(a => a.id === area)?.name
+  const area = isWine && showMap && wArea && areaCount(wArea) ? wArea : ''
+  const areaName = wm.areas.find(a => a.id === area)?.name
   const byArea = area ? shown.filter(i => i.area === area) : shown
   const byMode = isWine && mode === 'glass' ? byArea.filter(hasGlass) : byArea
   const wColors = WINE_COLORS.filter(([k]) => byMode.some(i => i.wineColor === k))
@@ -124,7 +125,7 @@ export default function Menu() {
     <button type="button" key={i.id}
       className={`dish${openId === i.id ? ' open' : ''}${i.soldOut ? ' out' : ''}`}
       onClick={() => setOpenId(openId === i.id ? null : i.id)}>
-      {i.photo ? <img className="pic" src={i.photo} alt={i.name} loading="lazy" /> : isWine && <span className={`bt ${i.wineColor || ''}`}><Bottle /></span>}
+      {i.photo ? <img className="pic" src={i.photo} alt={i.name} loading="lazy" /> : isWine && <span className={`bt ${i.wineColor || ''}`}><Bottle src={wm.bottle} /></span>}
       <div className="info">
         <h3>{i.name}</h3>
         {wmeta(i) && <p className="wmeta">{wmeta(i)}</p>}
@@ -274,17 +275,18 @@ export default function Menu() {
           {cat && (
             <>
               <h2>{title} <small>{count} {count === 1 ? 'продукт' : 'продукта'}</small></h2>
-              {isWine && (
-                <div className="wmapbox" style={{ '--fon': `url(${fonImg})` }}>
-                  <div className="wmap">
-                    <img src={mapImg} alt="Карта на винените райони на България" />
-                    {WINE_AREAS.map(a => {
+              {isWine && showMap && (
+                <div className="wmapbox" style={{ '--fon': `url("${wm.bg}")` }}>
+                  <div className="wmap" style={{ aspectRatio: wm.ratio }}>
+                    <img src={wm.image} alt="Карта на винените райони на България" />
+                    {wm.areas.map(a => {
                       const n = areaCount(a.id)
                       return (
                         <button type="button" key={a.id} className={`wpin${area === a.id ? ' on' : ''}${n ? '' : ' none'}`}
                           style={{ left: `${a.x}%`, top: `${a.y}%` }} disabled={!n} aria-pressed={area === a.id}
                           aria-label={`${a.name}: ${n}`} onClick={() => setWArea(area === a.id ? '' : a.id)}>
-                          <Bottle />{n > 0 && <b>{n}</b>}
+                          <Bottle src={wm.bottle} />{n > 0 && <b>{n}</b>}
+                          <span className={`wlab ${a.side}`}><em>{a.name}</em>{n > 0 && <small>{n} {n === 1 ? 'вино' : 'вина'}</small>}</span>
                         </button>
                       )
                     })}
