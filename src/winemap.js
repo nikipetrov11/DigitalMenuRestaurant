@@ -18,3 +18,14 @@ export function resolveMap(rest) {
     bottle: w.bottle || '',
   }
 }
+
+// Къде да стои надписът на областта, за да не излиза извън картата
+export function labelClass(a) {
+  let s = a.side || 'b'
+  if (s === 'r' && a.x > 82) s = 'l'
+  else if (s === 'l' && a.x < 18) s = 'r'
+  if (s === 'b' && a.y > 86) s = 't'
+  else if (s === 't' && a.y < 14) s = 'b'
+  const edge = (s === 'b' || s === 't') ? (a.x < 13 ? ' el' : a.x > 87 ? ' er' : '') : ''
+  return s + edge
+}

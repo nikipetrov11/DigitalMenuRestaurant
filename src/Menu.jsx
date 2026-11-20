@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { doc, collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from './firebase'
 import { WINE_COLORS, WINE_TASTES } from './util'
-import { resolveMap } from './winemap'
+import { resolveMap, labelClass } from './winemap'
 
 const Bottle = ({ src }) => src ? <img src={src} alt="" aria-hidden="true" /> : (
   <svg viewBox="0 0 24 48" aria-hidden="true" focusable="false">
@@ -325,7 +325,7 @@ export default function Menu() {
                             if (next) setTimeout(() => document.getElementById('wdrop')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80)
                           }}>
                           <Bottle src={wm.bottle} />{n > 0 && <b>{n}</b>}
-                          <span className={`wlab ${a.side}`}><em>{a.name}</em>{n > 0 && <small>{n} {n === 1 ? 'вино' : 'вина'}</small>}</span>
+                          <span className={`wlab ${labelClass(a)}`}><em>{a.name}</em><small>{n} {n === 1 ? 'вино' : 'вина'}</small></span>
                         </button>
                       )
                     })}

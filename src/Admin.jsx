@@ -10,7 +10,7 @@ import {
 import { auth, db } from './firebase'
 import QRCode from 'qrcode'
 import { fileToDataUrl, WINE_COLORS, WINE_TASTES, WINE_AREAS, isWineCat, isAlcCat } from './util'
-import { resolveMap, DEFAULT_MAP, DEFAULT_BG } from './winemap'
+import { resolveMap, DEFAULT_MAP, DEFAULT_BG, labelClass } from './winemap'
 
 const SUGGEST = ['Салати', 'Предястия', 'Основни ястия', 'Пици', 'Паста', 'Десерти', 'Напитки']
 const COLORS = ['#e9b45c', '#e8691a', '#c0392b', '#1f6b4f', '#1d4e89', '#333333']
@@ -706,7 +706,7 @@ function MapTab({ docRef, rest, items }) {
                 {v.bottle ? <img src={v.bottle} alt="" /> : (
                   <svg viewBox="0 0 24 48" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9.5 1h5v3h-.8v9.5c0 2 4.3 3.6 4.3 9.5v21a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V23c0-5.900 4.300-7.500 4.300-9.500V4h-.8z" /></svg>
                 )}
-                <span className={`wlab ${a.side || 'b'}`}><em>{a.name || '…'}</em></span>
+                <span className={`wlab ${labelClass(a)}`}><em>{a.name || '…'}</em></span>
               </button>
             ))}
           </div>
