@@ -435,3 +435,10 @@ header > .status { margin: 12px 20px 0; }
   .wlab, .wmapedit .wlab { font-size: clamp(8px, 2.1cqw, 13px); }
   .wpin { width: clamp(16px, 3.6cqw, 38px); }
 }
+
+/* ---- Четливост върху светли области: светъл текст с тъмен контур ---- */
+.wlab, .wmapedit .wlab { text-shadow: 0 0 2px #000, 0 0 4px rgba(0,0,0,.9), 0 1px 3px #000; }
+.wlab em, .wlab small { paint-order: stroke fill; -webkit-text-stroke: .24em rgba(12,8,4,.88); }
+.wlab em { color: #fff; }
+.wlab small { color: #fff3d2; opacity: 1; font-weight: 600; -webkit-text-stroke-width: .3em; }
+.wpin.on .wlab em { color: var(--accent); }
