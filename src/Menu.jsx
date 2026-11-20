@@ -45,8 +45,10 @@ export default function Menu() {
   const [info, setInfo] = useState(false)
   const [showPass, setShowPass] = useState(false)
   const [wColor, setWColor] = useState('')
-  const [wMode, setWMode] = useState('bottle')
+  const [wMode, setWMode] = useState('all')
   const [wArea, setWArea] = useState('')
+  const [wSort, setWSort] = useState('taste')
+  const [wAll, setWAll] = useState(false)
 
   useEffect(() => {
     const offRest = onSnapshot(doc(db, 'restaurants', slug), s => setRest(s.exists() ? s.data() : null))
@@ -71,7 +73,11 @@ export default function Menu() {
   const idx = slides.length ? slide % slides.length : 0
   const cur = rest.currency || '€'
   const accent = rest.color || '#e9b45c'
-  const money = i => `${Number(i.price).toFixed(2)} ${cur}`
+  const hasGlass = i => i.glassPrice !== undefined && i.glassPrice !== null && i.glassPrice !== ''
+  const hasBottle = i => i.price !== undefined && i.price !== null && i.price !== ''
+  const glassMoney = i => `${Number(i.glassPrice).toFixed(2)} ${cur}`
+  const bottleMoney = i => `${Number(i.price).toFixed(2)} ${cur}`
+  const money = i => (hasBottle(i) ? bottleMoney(i) : hasGlass(i) ? glassMoney(i) : '')
   const status = openStatus(rest.opens, rest.closes)
   const hasInfo = !!(rest.opens || rest.wifi || rest.address || rest.phone || rest.facebook || rest.google)
   const wm = resolveMap(rest)
@@ -98,46 +104,74 @@ export default function Menu() {
   const shown = items.filter(i => catOf(i) === current).sort(byName)
   const featured = items.filter(i => i.featured)
 
-  // винена карта: бутилки / на чаша, филтър по цвят и групиране по вкус
+  // винена карта: първо се вижда само картата; вината на областта се отварят в падащо меню
   const isWine = shown.some(i => i.wineColor || i.taste)
-  const hasGlass = i => i.glassPrice !== undefined && i.glassPrice !== null && i.glassPrice !== ''
-  const anyGlass = isWine && shown.some(hasGlass)
-  const mode = anyGlass && wMode === 'glass' ? 'glass' : 'bottle'
+  const mapView = isWine && showMap
+  const priceKey = i => (hasGlass(i) ? Number(i.glassPrice) : hasBottle(i) ? Number(i.price) : Infinity)
+  const idxOf = (list, k) => { const n = list.findIndex(([x]) => x === k); return n < 0 ? 99 : n }
+  const sorters = {
+    name: byName,
+    price: (a, b) => priceKey(a) - priceKey(b) || byName(a, b),
+    taste: (a, b) => idxOf(WINE_TASTES, a.taste) - idxOf(WINE_TASTES, b.taste) || byName(a, b),
+    color: (a, b) => idxOf(WINE_COLORS, a.wineColor) - idxOf(WINE_COLORS, b.wineColor) || byName(a, b),
+  }
+  const sortBy = sorters[wSort] || byName
   const areaCount = k => shown.filter(i => i.area === k).length
-  const area = isWine && showMap && wArea && areaCount(wArea) ? wArea : ''
+  const area = mapView && wArea && areaCount(wArea) ? wArea : ''
   const areaName = wm.areas.find(a => a.id === area)?.name
-  const byArea = area ? shown.filter(i => i.area === area) : shown
-  const byMode = isWine && mode === 'glass' ? byArea.filter(hasGlass) : byArea
+  const inArea = area ? shown.filter(i => i.area === area).sort(sortBy) : []
+  const mode = wMode
+  const byMode = !isWine || mode === 'all' ? shown : shown.filter(mode === 'glass' ? hasGlass : hasBottle)
   const wColors = WINE_COLORS.filter(([k]) => byMode.some(i => i.wineColor === k))
   const wc = wColors.some(([k]) => k === wColor) ? wColor : ''
   const view = isWine && wc ? byMode.filter(i => i.wineColor === wc) : byMode
   const blocks = isWine
-    ? [
-        ...WINE_TASTES.map(([k, l]) => [l, view.filter(i => i.taste === k)]),
-        ['Други', view.filter(i => !WINE_TASTES.some(([k]) => k === i.taste))],
-      ].filter(b => b[1].length)
+    ? wSort === 'taste'
+      ? [
+          ...WINE_TASTES.map(([k, l]) => [l, view.filter(i => i.taste === k)]),
+          ['Други', view.filter(i => !WINE_TASTES.some(([k]) => k === i.taste))],
+        ].filter(b => b[1].length)
+      : [['', [...view].sort(sortBy)]]
     : [['', view]]
-  const count = isWine ? view.length : shown.length
-  const glassMoney = i => `${Number(i.glassPrice).toFixed(2)} ${cur}`
-  const wmeta = i => [i.grape, i.region, i.year, i.volume && `${i.volume} мл`].filter(Boolean).join(' · ')
+  const count = shown.length
+  const colorLabel = k => WINE_COLORS.find(([x]) => x === k)?.[1]
+  const areaLabel = id => wm.areas.find(a => a.id === id)?.name
+  const wline1 = (i, hideArea) => [colorLabel(i.wineColor), i.year, !hideArea && areaLabel(i.area)].filter(Boolean).join(' · ')
+  const wline2 = i => [i.grape, i.wineType, i.region].filter(Boolean).join(' · ')
+  // цена на вино: на чаша (с мл) е основната, бутилката е по желание
+  const wprice = (i, m) => {
+    const g = hasGlass(i), b = hasBottle(i)
+    if (!g && !b) return null
+    const first = m === 'bottle' ? (b ? 'b' : 'g') : (g ? 'g' : 'b')
+    const second = first === 'g' ? (b ? 'b' : null) : (g ? 'g' : null)
+    const txt = k => (k === 'g' ? glassMoney(i) : bottleMoney(i))
+    const lab = k => (k === 'g' ? `чаша${i.glassMl ? ` ${i.glassMl} мл` : ''}` : `бутилка${i.volume ? ` ${i.volume} мл` : ''}`)
+    return (
+      <>
+        {txt(first)}
+        <small className="gl">{lab(first)}</small>
+        {second && <small className="gl">{lab(second)} · {txt(second)}</small>}
+      </>
+    )
+  }
 
-  const dish = i => (
+  const dishIn = hideArea => i => (
     <button type="button" key={i.id}
       className={`dish${openId === i.id ? ' open' : ''}${i.soldOut ? ' out' : ''}`}
       onClick={() => setOpenId(openId === i.id ? null : i.id)}>
       {i.photo ? <img className="pic" src={i.photo} alt={i.name} loading="lazy" /> : isWine && <span className={`bt ${i.wineColor || ''}`}><Bottle src={wm.bottle} /></span>}
       <div className="info">
         <h3>{i.name}</h3>
-        {wmeta(i) && <p className="wmeta">{wmeta(i)}</p>}
+        {isWine && wline1(i, hideArea) && <p className="wmeta">{wline1(i, hideArea)}</p>}
+        {isWine && wline2(i) && <p className="wmeta">{wline2(i)}</p>}
+        {!isWine && (i.volume ? <p className="wmeta">{i.volume} мл</p> : null)}
         {i.desc && <p>{i.desc}</p>}
         {i.soldOut && <em className="tag">изчерпано</em>}
       </div>
-      <span className="price">
-        {isWine && mode === 'glass' ? glassMoney(i) : money(i)}
-        {isWine && mode === 'bottle' && hasGlass(i) && <small className="gl">чаша {glassMoney(i)}</small>}
-      </span>
+      <span className="price">{isWine ? wprice(i, mode === 'bottle' ? 'bottle' : 'glass') : money(i)}</span>
     </button>
   )
+  const dish = dishIn(false)
 
   function goTo(i) {
     const c = all.find(x => x.name === catOf(i))
@@ -234,7 +268,7 @@ export default function Menu() {
               {featured.map(i => (
                 <button key={i.id} className="fcard" onClick={() => goTo(i)}>
                   <div className="fimg" style={i.photo ? { backgroundImage: `url("${i.photo}")` } : undefined}>
-                    <span className="fprice">{money(i)}</span>
+                    {money(i) && <span className="fprice">{money(i)}</span>}
                   </div>
                   <strong>{i.name}</strong>
                   {i.desc && <small>{i.desc}</small>}
@@ -275,7 +309,7 @@ export default function Menu() {
           {cat && (
             <>
               <h2>{title} <small>{count} {count === 1 ? 'продукт' : 'продукта'}</small></h2>
-              {isWine && showMap && (
+              {mapView && (
                 <div className="wmapbox" style={{ '--fon': `url("${wm.bg}")` }}>
                   <div className="wmap" style={{ aspectRatio: wm.ratio }}>
                     <img src={wm.image} alt="Карта на винените райони на България" />
@@ -283,41 +317,91 @@ export default function Menu() {
                       const n = areaCount(a.id)
                       return (
                         <button type="button" key={a.id} className={`wpin${area === a.id ? ' on' : ''}${n ? '' : ' none'}`}
-                          style={{ left: `${a.x}%`, top: `${a.y}%` }} disabled={!n} aria-pressed={area === a.id}
-                          aria-label={`${a.name}: ${n}`} onClick={() => setWArea(area === a.id ? '' : a.id)}>
+                          style={{ left: `${a.x}%`, top: `${a.y}%` }} disabled={!n} aria-pressed={area === a.id} aria-expanded={area === a.id}
+                          aria-label={`${a.name}: ${n}`}
+                          onClick={() => {
+                            const next = area === a.id ? '' : a.id
+                            setWArea(next)
+                            if (next) setTimeout(() => document.getElementById('wdrop')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80)
+                          }}>
                           <Bottle src={wm.bottle} />{n > 0 && <b>{n}</b>}
                           <span className={`wlab ${a.side}`}><em>{a.name}</em>{n > 0 && <small>{n} {n === 1 ? 'вино' : 'вина'}</small>}</span>
                         </button>
                       )
                     })}
                   </div>
-                  {area
-                    ? <p className="warea"><strong>{areaName}</strong><button type="button" onClick={() => setWArea('')}>Всички области ✕</button></p>
-                    : <p className="warea hint">Избери област от картата</p>}
+                  {!area && <p className="warea hint">Натисни бутилка от картата, за да видиш вината</p>}
                 </div>
               )}
-              {anyGlass && (
-                <nav className="wmode" aria-label="Бутилки или чаши">
-                  <button type="button" aria-pressed={mode === 'bottle'} onClick={() => setWMode('bottle')}>Бутилки</button>
-                  <button type="button" aria-pressed={mode === 'glass'} onClick={() => setWMode('glass')}>На чаша</button>
-                </nav>
+
+              {mapView && area && (
+                <section className="wdrop" id="wdrop" aria-label={areaName}>
+                  <header>
+                    <div>
+                      <strong>{areaName}</strong>
+                      <small>{inArea.length} {inArea.length === 1 ? 'вино' : 'вина'}</small>
+                    </div>
+                    <label className="wsort"><span>Подреди</span>
+                      <select value={wSort} onChange={e => setWSort(e.target.value)}>
+                        <option value="taste">По вкус</option>
+                        <option value="name">По име</option>
+                        <option value="price">По цена</option>
+                        <option value="color">По вид</option>
+                      </select>
+                    </label>
+                    <button type="button" className="x" aria-label="Затвори" onClick={() => setWArea('')}>✕</button>
+                  </header>
+                  <div className="list" key={area + wSort}>{inArea.map(dishIn(true))}</div>
+                </section>
               )}
-              {isWine && wColors.length > 0 && (
-                <nav className="wfilter" aria-label="Вид вино">
-                  <button type="button" aria-pressed={!wc} onClick={() => setWColor('')}>Всички</button>
-                  {wColors.map(([k, l]) => (
-                    <button type="button" key={k} aria-pressed={wc === k} onClick={() => setWColor(k)}>{l}</button>
-                  ))}
-                </nav>
+
+              {mapView && (
+                <button type="button" className="wall-toggle" aria-expanded={wAll} onClick={() => setWAll(!wAll)}>
+                  <span>Всички вина и подреждане</span>
+                  <small>{shown.length}</small>
+                  <i aria-hidden="true">{wAll ? '▴' : '▾'}</i>
+                </button>
               )}
-              <div className="list" key={current + wc}>
-                {blocks.map(([label, arr]) => (
-                  <div key={label || '_'}>
-                    {isWine && label && <h4 className="wgroup">{label}</h4>}
-                    {arr.map(dish)}
+
+              {(!mapView || wAll) && (
+                <>
+                  {isWine && (
+                    <div className="wtools">
+                      {wColors.length > 0 && (
+                        <label><span>Вид</span>
+                          <select value={wc} onChange={e => setWColor(e.target.value)}>
+                            <option value="">Всички</option>
+                            {wColors.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                          </select>
+                        </label>
+                      )}
+                      <label><span>Цена</span>
+                        <select value={mode} onChange={e => setWMode(e.target.value)}>
+                          <option value="all">Всички</option>
+                          <option value="glass">На чаша</option>
+                          <option value="bottle">Бутилка</option>
+                        </select>
+                      </label>
+                      <label><span>Подреди</span>
+                        <select value={wSort} onChange={e => setWSort(e.target.value)}>
+                          <option value="taste">По вкус</option>
+                          <option value="name">По име</option>
+                          <option value="price">По цена</option>
+                          <option value="color">По вид</option>
+                        </select>
+                      </label>
+                    </div>
+                  )}
+                  <div className="list" key={current + wc + wSort + mode}>
+                    {blocks.map(([label, arr]) => (
+                      <div key={label || '_'}>
+                        {isWine && label && <h4 className="wgroup">{label}</h4>}
+                        {arr.map(dish)}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </>
           )}
         </main>

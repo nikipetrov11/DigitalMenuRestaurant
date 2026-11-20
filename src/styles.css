@@ -384,3 +384,31 @@ header > .status { margin: 12px 20px 0; }
 .arow.on { border-color: var(--accent); background: #faf9f6; }
 .arow input, .arow select { min-width: 0; }
 @media (max-width: 520px) { .arow { grid-template-columns: 1fr 1fr; } .arow .link { justify-self: start; } .arow input { grid-column: 1 / -1; } }
+
+/* ---- Винена карта: падащо меню на областта + скрит списък долу ---- */
+.wdrop { margin: 0 6px 18px; overflow: hidden; background: #fff; border: 1.5px solid var(--accent); border-radius: 16px; box-shadow: 0 10px 28px rgba(0,0,0,.12); scroll-margin-top: 150px; animation: wdrop .3s ease both; }
+@keyframes wdrop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+.wdrop > header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: color-mix(in srgb, var(--accent) 16%, #fff); }
+.wdrop > header > div { flex: 1; min-width: 0; }
+.wdrop > header strong { display: block; font: 700 .95rem/1.2 Montserrat, sans-serif; }
+.wdrop > header small { color: #6d6a64; font-size: .75rem; font-weight: 600; }
+.wdrop .x { flex: none; width: 34px; height: 34px; min-height: 0; padding: 0; color: inherit; font-size: .9rem; background: rgba(0,0,0,.08); border-radius: 50%; }
+.wdrop .list { padding: 0 6px; }
+
+.wsort, .wtools label { display: flex; flex-direction: column; gap: 3px; color: #6d6a64; font: 700 .64rem Montserrat, sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.wsort select, .wtools select { min-height: 38px; padding: 7px 10px; color: #161616; font: 600 .85rem Montserrat, sans-serif; text-transform: none; letter-spacing: 0; background: #fff; border: 1.5px solid rgba(0,0,0,.14); border-radius: 10px; }
+
+.wall-toggle { display: flex; align-items: center; gap: 10px; width: calc(100% - 12px); margin: 4px 6px 14px; padding: 12px 16px; color: #161616; font: 700 .88rem Montserrat, sans-serif; text-align: left; background: transparent; border: 1.5px solid rgba(0,0,0,.14); border-radius: 12px; }
+.wall-toggle span { flex: 1; }
+.wall-toggle small { color: #8a8a85; font-weight: 700; }
+.wall-toggle i { font-style: normal; }
+.wtools { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin: 0 6px 14px; }
+
+.luxe .wdrop { background: #14120f; }
+.luxe .wdrop > header { background: rgba(255,255,255,.04); }
+.luxe .wdrop > header strong { color: #f6eedb; font-family: 'Playfair Display', Georgia, serif; }
+.luxe .wdrop > header small { color: #bdb39c; }
+.luxe .wdrop .x { background: rgba(255,255,255,.1); }
+.luxe .wsort, .luxe .wtools label { color: #bdb39c; }
+.luxe .wsort select, .luxe .wtools select { color: #f6eedb; background: #14120f; border-color: rgba(255,255,255,.16); border-radius: 2px; }
+.luxe .wall-toggle { color: #d9cfb9; border-color: rgba(255,255,255,.16); border-radius: 2px; letter-spacing: .06em; text-transform: uppercase; font-size: .76rem; }

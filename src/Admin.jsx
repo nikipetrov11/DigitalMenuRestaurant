@@ -112,7 +112,7 @@ function Dashboard({ slug }) {
 
 function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
   const cats = catObjs.map(c => c.name)
-  const empty = { name: '', price: '', category: '', newCat: '', desc: '', photo: '', featured: false, wineColor: '', taste: '', area: '', grape: '', region: '', year: '', volume: '', glass: '' }
+  const empty = { name: '', price: '', category: '', newCat: '', desc: '', photo: '', featured: false, wineColor: '', taste: '', area: '', grape: '', region: '', year: '', volume: '', glass: '', wineType: '', glassMl: '' }
   const [f, setF] = useState(empty)
   const [editId, setEditId] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -135,6 +135,7 @@ function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
     setBusy(true)
     setMsg('')
     try {
+      if (wine && (!f.wineColor || (areas.length > 0 && !f.area) || f.glass === '')) throw new Error('NEED_WINE')
       let cat = category
       if (cat === '__new') {
         cat = f.newCat.trim()
@@ -142,16 +143,16 @@ function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
         if (!cats.includes(cat)) await updateDoc(docRef, { categories: [...catObjs, { name: cat, group: '', parent: '' }] })
       }
       const w = wine
-        ? { wineColor: f.wineColor, taste: f.taste, area: f.area, grape: f.grape.trim(), region: f.region.trim(), year: f.year.trim(), glassPrice: f.glass === '' ? null : Number(f.glass) }
-        : { wineColor: '', taste: '', area: '', grape: '', region: '', year: '', glassPrice: null }
-      const data = { name: f.name.trim(), price: Number(f.price), category: cat, desc: f.desc.trim(), photo: f.photo, featured: f.featured, ...w, volume: wine || alc ? f.volume.trim() : '' }
+        ? { wineColor: f.wineColor, taste: f.taste, area: f.area, grape: f.grape.trim(), region: f.region.trim(), year: f.year.trim(), wineType: f.wineType.trim(), glassPrice: f.glass === '' ? null : Number(f.glass), glassMl: f.glassMl === '' ? null : Number(f.glassMl) }
+        : { wineColor: '', taste: '', area: '', grape: '', region: '', year: '', wineType: '', glassPrice: null, glassMl: null }
+      const data = { name: f.name.trim(), price: wine && f.price === '' ? null : Number(f.price), category: cat, desc: f.desc.trim(), photo: f.photo, featured: f.featured, ...w, volume: wine || alc ? f.volume.trim() : '' }
       if (editId) await updateDoc(doc(col, editId), data)
       else await addDoc(col, { ...data, visible: true })
       setF({ ...empty, category: cat })
       setEditId(null)
       setMsg('Запазено ✓')
     } catch (ex) {
-      setMsg(ex.message === 'NEED_CAT' ? 'Напиши име на категорията.' : 'Не се запази: ' + (ex.code || ex.message))
+      setMsg(ex.message === 'NEED_CAT' ? 'Напиши име на категорията.' : ex.message === 'NEED_WINE' ? 'Попълни задължителните полета: вид, регион и цена на чаша.' : 'Не се запази: ' + (ex.code || ex.message))
     }
     setBusy(false)
   }
@@ -160,9 +161,9 @@ function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
     setEditId(i.id)
     setMsg('')
     setF({
-      name: i.name, price: i.price, category: i.category || '', newCat: '', desc: i.desc || '', photo: i.photo || '', featured: !!i.featured,
+      name: i.name, price: i.price ?? '', category: i.category || '', newCat: '', desc: i.desc || '', photo: i.photo || '', featured: !!i.featured,
       wineColor: i.wineColor || '', taste: i.taste || '', area: i.area || '', grape: i.grape || '', region: i.region || '', year: i.year || '', volume: i.volume || '',
-      glass: i.glassPrice ?? '',
+      glass: i.glassPrice ?? '', wineType: i.wineType || '', glassMl: i.glassMl ?? '',
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -177,13 +178,18 @@ function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
   const totalOf = c => itemsOf(c.name).length + kidsOf(c.name).reduce((sum, k) => sum + itemsOf(k.name).length, 0)
   const loose = items.filter(i => !i.category && matches(i)).sort((a, b) => a.name.localeCompare(b.name, 'bg'))
 
+  const hasP = v => v !== undefined && v !== null && v !== ''
+  const priceText = i => (hasP(i.glassPrice)
+    ? `чаша ${Number(i.glassPrice).toFixed(2)} ${cur}${hasP(i.price) ? ` · бутилка ${Number(i.price).toFixed(2)} ${cur}` : ''}`
+    : hasP(i.price) ? `${Number(i.price).toFixed(2)} ${cur}` : '—')
+
   const row = i => (
     <div className="item" key={i.id}>
       {i.photo ? <img className="thumb" src={i.photo} alt="" /> : <div className="thumb" />}
       <div className="grow">
         <strong>{i.name}</strong>
         <div className="muted">
-          {Number(i.price).toFixed(2)} {cur}{i.visible ? '' : ' · скрито'}{i.soldOut ? ' · изчерпано' : ''}{i.featured ? ' · препоръчвано' : ''}
+          {priceText(i)}{i.visible ? '' : ' · скрито'}{i.soldOut ? ' · изчерпано' : ''}{i.featured ? ' · препоръчвано' : ''}
         </div>
       </div>
       <div className="actions">
@@ -207,7 +213,7 @@ function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
         {f.photo && <button type="button" className="link" onClick={() => setF({ ...f, photo: '' })}>Махни снимката</button>}
 
         <label>Име <input value={f.name} onChange={set('name')} required /></label>
-        <label>{wine ? `Цена за бутилка (${cur})` : `Цена (${cur})`} <input type="number" step="0.01" min="0" value={f.price} onChange={set('price')} required /></label>
+        {!wine && <label>Цена ({cur}) <input type="number" step="0.01" min="0" value={f.price} onChange={set('price')} required /></label>}
         <label>Категория
           <select value={category} onChange={set('category')}>
             {catObjs.map(c => <option key={c.name} value={c.name}>{c.parent ? `${c.parent} › ${c.name}` : c.group ? `${c.group} · ${c.name}` : c.name}</option>)}
@@ -217,45 +223,52 @@ function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
         {category === '__new' && (
           <input value={f.newCat} onChange={set('newCat')} placeholder="Име на новата категория, напр. Салати" />
         )}
-        {(wine || alc) && (
+        {wine && (
           <div className="stack winebox">
-            <strong>{wine ? 'Данни за виното' : 'Данни за напитката'} <span className="muted">(всичко е по желание)</span></strong>
-            {wine && (
-              <div className="row2">
-                <label>Вид
-                  <select value={f.wineColor} onChange={set('wineColor')}>
-                    <option value="">Не е посочено</option>
-                    {WINE_COLORS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-                  </select>
-                </label>
-                <label>Вкус
-                  <select value={f.taste} onChange={set('taste')}>
-                    <option value="">Не е посочено</option>
-                    {WINE_TASTES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-                  </select>
-                </label>
-              </div>
-            )}
-            {wine && (
-              <label>Област на картата
-                <select value={f.area} onChange={set('area')}>
-                  <option value="">— без област —</option>
+            <strong>Данни за виното <span className="muted">(* задължително)</span></strong>
+            <div className="row2">
+              <label>Вид *
+                <select value={f.wineColor} onChange={set('wineColor')} required>
+                  <option value="">Избери…</option>
+                  {WINE_COLORS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              </label>
+              <label>Регион *
+                <select value={f.area} onChange={set('area')} required={areas.length > 0}>
+                  <option value="">Избери…</option>
                   {f.area && !areas.some(x => x.id === f.area) && <option value={f.area}>(изтрита област)</option>}
                   {areas.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
                 </select>
               </label>
-            )}
-            {wine && (
-              <div className="row2">
-                <label>Сорт грозде <input value={f.grape} onChange={set('grape')} placeholder="Напр. Мавруд, Каберне, Шардоне" /></label>
-                <label>Регион / производител <input value={f.region} onChange={set('region')} placeholder="Напр. Мелник" /></label>
-              </div>
-            )}
-            <div className="row2">
-              {wine && <label>Година <input value={f.year} onChange={set('year')} placeholder="2021" inputMode="numeric" /></label>}
-              <label>Обем (мл) <input type="number" min="0" value={f.volume} onChange={set('volume')} placeholder={wine ? '750' : '50'} /></label>
             </div>
-            {wine && <label>Цена на чаша ({cur}) <input type="number" step="0.01" min="0" value={f.glass} onChange={set('glass')} placeholder="Ако се продава и на чаша" /></label>}
+            <div className="row2">
+              <label>Цена на чаша ({cur}) * <input type="number" step="0.01" min="0" value={f.glass} onChange={set('glass')} required /></label>
+              <label>Мл на чашата <input type="number" min="0" value={f.glassMl} onChange={set('glassMl')} placeholder="Напр. 150" /></label>
+            </div>
+            <div className="row2">
+              <label>Цена за бутилка ({cur}) <span className="muted">по желание</span> <input type="number" step="0.01" min="0" value={f.price} onChange={set('price')} /></label>
+              <label>Обем на бутилката (мл) <span className="muted">по желание</span> <input type="number" min="0" value={f.volume} onChange={set('volume')} placeholder="750" /></label>
+            </div>
+            <div className="row2">
+              <label>Сорт / купаж <input value={f.grape} onChange={set('grape')} placeholder="Напр. Мавруд, Каберне, Шардоне" /></label>
+              <label>Тип <input value={f.wineType} onChange={set('wineType')} placeholder="Напр. ЕПВ - Тр. метод - бяло" /></label>
+            </div>
+            <div className="row2">
+              <label>Вкус
+                <select value={f.taste} onChange={set('taste')}>
+                  <option value="">Не е посочено</option>
+                  {WINE_TASTES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              </label>
+              <label>Година <input value={f.year} onChange={set('year')} placeholder="2023" inputMode="numeric" /></label>
+            </div>
+            <label>Производител <span className="muted">по желание</span> <input value={f.region} onChange={set('region')} placeholder="Напр. Мелник" /></label>
+          </div>
+        )}
+        {alc && !wine && (
+          <div className="stack winebox">
+            <strong>Данни за напитката <span className="muted">(всичко е по желание)</span></strong>
+            <label>Обем (мл) <input type="number" min="0" value={f.volume} onChange={set('volume')} placeholder="50" /></label>
           </div>
         )}
         <label>Описание (по желание) <input value={f.desc} onChange={set('desc')} /></label>
