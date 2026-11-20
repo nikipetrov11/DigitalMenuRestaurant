@@ -4,13 +4,13 @@ import { doc, collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from './firebase'
 import { WINE_COLORS, WINE_TASTES, CASA_IG, isCasa, isDrinksOnly } from './util'
 import { resolveMap, labelClass, pickArea } from './winemap'
+import { useLang, ui, tx, WINE, LANGS } from './i18n'
 
 const Bottle = ({ src }) => src ? <img src={src} alt="" aria-hidden="true" /> : (
   <svg viewBox="0 0 24 48" aria-hidden="true" focusable="false">
     <path fill="currentColor" d="M9.5 1h5v3h-.8v9.5c0 2 4.3 3.6 4.3 9.5v21a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V23c0-5.900 4.300-7.500 4.300-9.500V4h-.8z" />
   </svg>
 )
-const byName = (a, b) => a.name.localeCompare(b.name, 'bg')
 const catOf = i => i.category || 'Меню'
 const norm = c => (typeof c === 'string' ? { name: c, group: '', parent: '' } : { name: c.name, group: c.group || '', parent: c.parent || '' })
 const slidesOf = r => (r?.slides?.length ? r.slides : r?.cover ? [r.cover] : [])
@@ -24,15 +24,15 @@ function onAccent(hex) {
 }
 
 // "Отворено до 23:00" според часа на телефона на клиента
-function openStatus(opens, closes) {
+function openStatus(opens, closes, t) {
   if (!opens || !closes) return null
   const mins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0) }
   const o = mins(opens), c = mins(closes)
   const d = new Date(), now = d.getHours() * 60 + d.getMinutes()
   const open = o <= c ? now >= o && now < c : now >= o || now < c
   return open
-    ? { open, text: `Отворено до ${closes}`, label: 'Отворено', note: 'до', time: closes }
-    : { open, text: `Затворено · отваря в ${opens}`, label: 'Затворено', note: 'отваря в', time: opens }
+    ? { open, text: t.openUntil(closes), label: t.open, note: t.until, time: closes }
+    : { open, text: t.closedOpens(opens), label: t.closed, note: t.opensAt, time: opens }
 }
 
 export default function Menu() {
@@ -51,6 +51,8 @@ export default function Menu() {
   const [wArea, setWArea] = useState('')
   const [wSort, setWSort] = useState('taste')
   const [wAll, setWAll] = useState(false)
+  const [lang, setLang] = useLang()
+  const t = ui(lang)
 
   useEffect(() => {
     const offRest = onSnapshot(doc(db, 'restaurants', slug), s => setRest(s.exists() ? s.data() : null))
@@ -60,6 +62,7 @@ export default function Menu() {
   }, [slug])
 
   useEffect(() => { if (rest?.name) document.title = rest.name }, [rest])
+  useEffect(() => { document.documentElement.lang = lang }, [lang])
 
   useEffect(() => {
     const n = slidesOf(rest).length
@@ -68,19 +71,25 @@ export default function Menu() {
     return () => clearInterval(t)
   }, [rest])
 
-  if (rest === undefined) return <main className="wrap"><p>Зареждане…</p></main>
-  if (rest === null) return <main className="wrap"><h1>Не намираме това заведение</h1><p>Провери адреса или QR кода.</p></main>
+  if (rest === undefined) return <main className="wrap"><p>{t.loading}</p></main>
+  if (rest === null) return <main className="wrap"><h1>{t.notFound}</h1><p>{t.notFoundHint}</p></main>
 
   const slides = slidesOf(rest)
   const idx = slides.length ? slide % slides.length : 0
   const cur = rest.currency || '€'
+  const L = rest.i18n?.[lang] || {}
+  const nameOf = i => tx(lang, i.name, i.i18n?.[lang]?.name)
+  const descOf = i => tx(lang, i.desc, i.i18n?.[lang]?.desc)
+  const catLabel = n => tx(lang, n, L.categories?.[n])
+  const byName = (a, b) => nameOf(a).localeCompare(nameOf(b), lang)
+  const tagline = tx(lang, rest.tagline, L.tagline)
   const accent = rest.color || '#e9b45c'
   const hasGlass = i => i.glassPrice !== undefined && i.glassPrice !== null && i.glassPrice !== ''
   const hasBottle = i => i.price !== undefined && i.price !== null && i.price !== ''
   const glassMoney = i => `${Number(i.glassPrice).toFixed(2)} ${cur}`
   const bottleMoney = i => `${Number(i.price).toFixed(2)} ${cur}`
   const money = i => (hasBottle(i) ? bottleMoney(i) : hasGlass(i) ? glassMoney(i) : '')
-  const status = rest.hideStatus ? null : openStatus(rest.opens, rest.closes)
+  const status = rest.hideStatus ? null : openStatus(rest.opens, rest.closes, t)
   const metaStatus = (rest.coverIdentity ?? isCasa(rest)) ? null : status // при банер с лого статусът е вътре в банера
   const hasInfo = !!(rest.opens || rest.wifi || rest.address || rest.phone || rest.facebook || rest.google)
   const wm = resolveMap(rest)
@@ -95,7 +104,7 @@ export default function Menu() {
   const hideTag = rest.hideTagline ?? casaLike
   const igOnImage = !!((rest.igOnImage ?? casaLike) && insta) // Instagram бутон върху самата снимка на банера
   const showIg = !!insta && !hideIg && !igOnImage
-  const showTag = !!rest.tagline && !hideTag
+  const showTag = !!tagline && !hideTag
   const nameOff = !!rest.hideName || (ov && hideLogo && hideIg && hideTag)
   const showInfoBtn = hasInfo && !(rest.hideInfo ?? isCasa(rest))
 
@@ -111,11 +120,11 @@ export default function Menu() {
   const inGroup = tops.filter(c => c.group === group)
   const cat = inGroup.find(c => c.name === cActive)?.name || inGroup[0]?.name
   // подкатегории на избраната категория
-  const subs = cat ? kids(cat).filter(k => has(k.name)).map(k => ({ name: k.name, label: k.name })) : []
-  if (subs.length && has(cat)) subs.push({ name: cat, label: 'Други' })
+  const subs = cat ? kids(cat).filter(k => has(k.name)).map(k => ({ name: k.name, label: catLabel(k.name) })) : []
+  if (subs.length && has(cat)) subs.push({ name: cat, label: t.others })
   const sub = subs.find(x => x.name === sActive) || subs[0]
   const current = subs.length ? sub.name : cat
-  const title = subs.length && sub.name !== cat ? sub.name : cat
+  const title = catLabel(subs.length && sub.name !== cat ? sub.name : cat)
   const shown = items.filter(i => catOf(i) === current).sort(byName)
   const featured = items.filter(i => i.featured)
 
@@ -133,7 +142,8 @@ export default function Menu() {
   const sortBy = sorters[wSort] || byName
   const areaCount = k => shown.filter(i => i.area === k).length
   const area = mapView && wArea && areaCount(wArea) ? wArea : ''
-  const areaName = wm.areas.find(a => a.id === area)?.name
+  const areaNameOf = a => (lang === 'bg' ? a?.name : WINE.areas[lang]?.[a?.id] || a?.name)
+  const areaName = areaNameOf(wm.areas.find(a => a.id === area))
   const inArea = area ? shown.filter(i => i.area === area).sort(sortBy) : []
   const mode = wMode
   const byMode = !isWine || mode === 'all' ? shown : shown.filter(mode === 'glass' ? hasGlass : hasBottle)
@@ -143,14 +153,14 @@ export default function Menu() {
   const blocks = isWine
     ? wSort === 'taste'
       ? [
-          ...WINE_TASTES.map(([k, l]) => [l, view.filter(i => i.taste === k)]),
-          ['Други', view.filter(i => !WINE_TASTES.some(([k]) => k === i.taste))],
+          ...WINE_TASTES.map(([k]) => [WINE.tastes[lang][k], view.filter(i => i.taste === k)]),
+          [t.others, view.filter(i => !WINE_TASTES.some(([k]) => k === i.taste))],
         ].filter(b => b[1].length)
       : [['', [...view].sort(sortBy)]]
     : [['', view]]
   const count = shown.length
-  const colorLabel = k => WINE_COLORS.find(([x]) => x === k)?.[1]
-  const areaLabel = id => wm.areas.find(a => a.id === id)?.name
+  const colorLabel = k => WINE.colors[lang][k] || WINE_COLORS.find(([x]) => x === k)?.[1]
+  const areaLabel = id => areaNameOf(wm.areas.find(a => a.id === id))
   const wline1 = (i, hideArea) => [colorLabel(i.wineColor), i.year, !hideArea && areaLabel(i.area)].filter(Boolean).join(' · ')
   const wline2 = i => [i.grape, i.wineType, i.region].filter(Boolean).join(' · ')
   // цена на вино: на чаша (с мл) е основната, бутилката е по желание
@@ -160,12 +170,12 @@ export default function Menu() {
     const first = m === 'bottle' ? (b ? 'b' : 'g') : (g ? 'g' : 'b')
     const second = first === 'g' ? (b ? 'b' : null) : (g ? 'g' : null)
     const txt = k => (k === 'g' ? glassMoney(i) : bottleMoney(i))
-    const lab = k => (k === 'g' ? ['Чаша', i.glassMl] : ['Бутилка', i.volume])
+    const lab = k => (k === 'g' ? [t.glass, i.glassMl] : [t.bottle, i.volume])
     const row = (k, main) => {
       const [name, ml] = lab(k)
       return (
         <span className={`prow${main ? ' main' : ''}`}>
-          <span className="plab">{name}{ml ? <em>{ml} мл</em> : null}</span>
+          <span className="plab">{name}{ml ? <em>{ml} {t.ml}</em> : null}</span>
           <b>{txt(k)}</b>
         </span>
       )
@@ -182,14 +192,14 @@ export default function Menu() {
     <button type="button" key={i.id}
       className={`dish${openId === i.id ? ' open' : ''}${i.soldOut ? ' out' : ''}`}
       onClick={() => setOpenId(openId === i.id ? null : i.id)}>
-      {isWine ? <span className={`bt ${i.wineColor || ''}`}><Bottle src={i.photo} /></span> : i.photo && <img className="pic" src={i.photo} alt={i.name} loading="lazy" />}
+      {isWine ? <span className={`bt ${i.wineColor || ''}`}><Bottle src={i.photo} /></span> : i.photo && <img className="pic" src={i.photo} alt={nameOf(i)} loading="lazy" />}
       <div className="info">
-        <h3>{i.name}</h3>
+        <h3>{nameOf(i)}</h3>
         {isWine && wline1(i, hideArea) && <p className="wmeta">{wline1(i, hideArea)}</p>}
         {isWine && wline2(i) && <p className="wmeta">{wline2(i)}</p>}
-        {!isWine && (i.volume ? <p className="wmeta">{i.volume} мл</p> : null)}
-        {i.desc && <p>{i.desc}</p>}
-        {i.soldOut && <em className="tag">изчерпано</em>}
+        {!isWine && (i.volume ? <p className="wmeta">{i.volume} {t.ml}</p> : null)}
+        {descOf(i) && <p>{descOf(i)}</p>}
+        {i.soldOut && <em className="tag">{t.soldOut}</em>}
       </div>
       <span className={`price${isWine ? ' wp' : ''}`}>{isWine ? wprice(i, mode === 'bottle' ? 'bottle' : 'glass') : money(i)}</span>
     </button>
@@ -237,7 +247,7 @@ export default function Menu() {
                   <a className="iglabel" href={link(insta)} target="_blank" rel="noreferrer">{rest.name}</a>
                 )}
               </div>
-              {showTag && <p className="tagline">{rest.tagline}</p>}
+              {showTag && <p className="tagline">{tagline}</p>}
             </div>
           </div>
   )
@@ -245,13 +255,18 @@ export default function Menu() {
   return (
     <div className={`page${rest.theme === 'luxury' ? ' luxe' : ''}`} style={{ '--accent': accent, '--on-accent': onAccent(accent) }}>
       <div className="shell">
+        <div className="langsw" role="group" aria-label={t.language}>
+          {LANGS.map(l => (
+            <button key={l} type="button" aria-pressed={l === lang} onClick={() => setLang(l)}>{l.toUpperCase()}</button>
+          ))}
+        </div>
         <header>
           <div className={`cover${ov ? ' ov' : ''}`}>
             {slides[idx] && <div key={idx} className="hero-bg" style={{ backgroundImage: `url("${slides[idx]}")` }} />}
             {slides.length > 1 && (
               <>
-                <button className="arrow l" aria-label="Назад" onClick={() => setSlide((idx + slides.length - 1) % slides.length)}>‹</button>
-                <button className="arrow r" aria-label="Напред" onClick={() => setSlide((idx + 1) % slides.length)}>›</button>
+                <button className="arrow l" aria-label={t.prev} onClick={() => setSlide((idx + slides.length - 1) % slides.length)}>‹</button>
+                <button className="arrow r" aria-label={t.next} onClick={() => setSlide((idx + 1) % slides.length)}>›</button>
                 <div className="dots">{slides.map((_, k) => <i key={k} className={k === idx ? 'on' : ''} />)}</div>
               </>
             )}
@@ -270,7 +285,7 @@ export default function Menu() {
             <div className="meta">
               {metaStatus ? <div className={`status${metaStatus.open ? '' : ' closed'}`}><i />{metaStatus.text}</div> : <span />}
               {showInfoBtn && (
-                <button type="button" className="infobtn" aria-expanded={info} onClick={() => setInfo(!info)}>Информация</button>
+                <button type="button" className="infobtn" aria-expanded={info} onClick={() => setInfo(!info)}>{t.info}</button>
               )}
             </div>
           )}
@@ -278,7 +293,7 @@ export default function Menu() {
           {info && hasInfo && (
             <div className="infopanel">
               {rest.opens && rest.closes && (
-                <div className="irow"><span>Работно време</span><strong>{rest.opens} - {rest.closes}</strong></div>
+                <div className="irow"><span>{t.hours}</span><strong>{rest.opens} - {rest.closes}</strong></div>
               )}
               {rest.wifi && (
                 <div className="irow">
@@ -288,7 +303,7 @@ export default function Menu() {
                     {rest.wifiPass && (
                       <>
                         {' • '}
-                        <button type="button" className="pass" onClick={() => setShowPass(!showPass)} aria-label={showPass ? 'Скрий паролата' : 'Покажи паролата'}>
+                        <button type="button" className="pass" onClick={() => setShowPass(!showPass)} aria-label={showPass ? t.hidePass : t.showPass}>
                           {showPass ? rest.wifiPass : '••••••••'}
                         </button>
                       </>
@@ -298,20 +313,20 @@ export default function Menu() {
               )}
               {rest.address && (
                 <div className="irow">
-                  <span>Адрес</span>
+                  <span>{t.address}</span>
                   <strong><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rest.address)}`} target="_blank" rel="noreferrer">{rest.address}</a></strong>
                 </div>
               )}
               {rest.phone && (
                 <div className="irow">
-                  <span>Телефон</span>
+                  <span>{t.phone}</span>
                   <strong><a href={`tel:${rest.phone.replace(/[^\d+]/g, '')}`}>{rest.phone}</a></strong>
                 </div>
               )}
               {(rest.facebook || rest.google) && (
                 <div className="ibtns">
-                  {rest.facebook && <a className="ibtn" href={link(rest.facebook)} target="_blank" rel="noreferrer"><i>F</i>Последвайте ни</a>}
-                  {rest.google && <a className="ibtn" href={link(rest.google)} target="_blank" rel="noreferrer"><i>G</i>Оценете преживяването си</a>}
+                  {rest.facebook && <a className="ibtn" href={link(rest.facebook)} target="_blank" rel="noreferrer"><i>F</i>{t.follow}</a>}
+                  {rest.google && <a className="ibtn" href={link(rest.google)} target="_blank" rel="noreferrer"><i>G</i>{t.rate}</a>}
                 </div>
               )}
             </div>
@@ -321,15 +336,15 @@ export default function Menu() {
 
         {featured.length > 0 && (
           <section className="feat">
-            <h2>Препоръчваме</h2>
+            <h2>{t.recommend}</h2>
             <div className="feat-row">
               {featured.map(i => (
                 <button key={i.id} className="fcard" onClick={() => goTo(i)}>
                   <div className="fimg" style={i.photo ? { backgroundImage: `url("${i.photo}")` } : undefined}>
                     {money(i) && <span className="fprice">{money(i)}</span>}
                   </div>
-                  <strong>{i.name}</strong>
-                  {i.desc && <small>{i.desc}</small>}
+                  <strong>{nameOf(i)}</strong>
+                  {descOf(i) && <small>{descOf(i)}</small>}
                 </button>
               ))}
             </div>
@@ -339,21 +354,21 @@ export default function Menu() {
         {(groups.length > 1 || inGroup.length > 0) && (
           <div className="sticky">
             {groups.length > 1 && (
-              <nav className="gtabs" aria-label="Менюта">
+              <nav className="gtabs" aria-label={t.menus}>
                 {groups.map(g => (
-                  <button key={g} aria-pressed={g === group} onClick={() => { setGActive(g); setCActive(null); setSActive(null) }}>{g || 'Меню'}</button>
+                  <button key={g} aria-pressed={g === group} onClick={() => { setGActive(g); setCActive(null); setSActive(null) }}>{g ? catLabel(g) : t.menu}</button>
                 ))}
               </nav>
             )}
             {inGroup.length > 0 && (
-              <nav className="pills" aria-label="Категории">
+              <nav className="pills" aria-label={t.categories}>
                 {inGroup.map(c => (
-                  <button key={c.name} aria-pressed={c.name === cat} onClick={() => { setCActive(c.name); setSActive(null) }}>{c.name}</button>
+                  <button key={c.name} aria-pressed={c.name === cat} onClick={() => { setCActive(c.name); setSActive(null) }}>{catLabel(c.name)}</button>
                 ))}
               </nav>
             )}
             {subs.length > 0 && (
-              <nav className="subpills" aria-label="Подкатегории">
+              <nav className="subpills" aria-label={t.subcategories}>
                 {subs.map(x => (
                   <button key={x.name} aria-pressed={x.name === sub.name} onClick={() => setSActive(x.name)}>{x.label}</button>
                 ))}
@@ -363,10 +378,10 @@ export default function Menu() {
         )}
 
         <main className="sec" id="list">
-          {tops.length === 0 && <p className="empty">Менюто още е празно.</p>}
+          {tops.length === 0 && <p className="empty">{t.empty}</p>}
           {cat && (
             <>
-              <h2>{title} <small>{count} {count === 1 ? 'продукт' : 'продукта'}</small></h2>
+              <h2>{title} <small>{count} {t.product(count)}</small></h2>
               {mapView && (
                 <div className="wmapbox d3" style={{ '--fon': `url("${wm.bg}")`, '--bs': wm.size }}>
                   <div className={`wmap${area ? ' sel' : ''}${wm.names ? '' : ' nonames'}`} style={{ aspectRatio: wm.ratio }}
@@ -376,21 +391,21 @@ export default function Menu() {
                       const id = await pickArea(wm.image, wm.areas, (e.nativeEvent.offsetX / el.clientWidth) * 100, (e.nativeEvent.offsetY / el.clientHeight) * 100)
                       if (id && areaCount(id)) toggleArea(id)
                     }}>
-                    <img src={wm.image} alt="Карта на винените райони на България" />
+                    <img src={wm.image} alt={t.mapAlt} />
                     {wm.areas.map(a => {
                       const n = areaCount(a.id)
                       return (
                         <button type="button" key={a.id} className={`wpin${area === a.id ? ' on' : ''}${n ? '' : ' none'}`}
                           style={{ left: `${a.x}%`, top: `${a.y}%` }} disabled={!n} aria-pressed={area === a.id} aria-expanded={area === a.id}
-                          aria-label={`${a.name}: ${n}`}
+                          aria-label={`${areaNameOf(a)}: ${n}`}
                           onClick={() => toggleArea(a.id)}>
                           <Bottle src={a.bottle || wm.bottle} />{n > 0 && <b>{n}</b>}
-                          <span className={`wlab ${labelClass(a)}`}><em>{a.name}</em><small>{n} {n === 1 ? 'вино' : 'вина'}</small></span>
+                          <span className={`wlab ${labelClass(a)}`}><em>{areaNameOf(a)}</em><small>{n} {t.wine(n)}</small></span>
                         </button>
                       )
                     })}
                   </div>
-                  {!area && <p className="warea hint">Натисни бутилка от картата, за да видиш вината</p>}
+                  {!area && <p className="warea hint">{t.mapHint}</p>}
                 </div>
               )}
 
@@ -400,17 +415,17 @@ export default function Menu() {
                     <span className="whbt"><Bottle src={wm.areas.find(a => a.id === area)?.bottle || wm.bottle} /></span>
                     <div>
                       <strong>{areaName}</strong>
-                      <small>{inArea.length} {inArea.length === 1 ? 'вино' : 'вина'}</small>
+                      <small>{inArea.length} {t.wine(inArea.length)}</small>
                     </div>
-                    <label className="wsort"><span>Подреди</span>
+                    <label className="wsort"><span>{t.sort}</span>
                       <select value={wSort} onChange={e => setWSort(e.target.value)}>
-                        <option value="taste">По вкус</option>
-                        <option value="name">По име</option>
-                        <option value="price">По цена</option>
-                        <option value="color">По вид</option>
+                        <option value="taste">{t.sTaste}</option>
+                        <option value="name">{t.sName}</option>
+                        <option value="price">{t.sPrice}</option>
+                        <option value="color">{t.sColor}</option>
                       </select>
                     </label>
-                    <button type="button" className="x" aria-label="Затвори" onClick={() => setWArea('')}>✕</button>
+                    <button type="button" className="x" aria-label={t.close} onClick={() => setWArea('')}>✕</button>
                   </header>
                   <div className="list" key={area + wSort}>{inArea.map(dishIn(true))}</div>
                 </section>
@@ -418,7 +433,7 @@ export default function Menu() {
 
               {mapView && (
                 <button type="button" className="wall-toggle" aria-expanded={wAll} onClick={() => setWAll(!wAll)}>
-                  <span>Всички вина и подреждане</span>
+                  <span>{t.allWines}</span>
                   <small>{shown.length}</small>
                   <i aria-hidden="true">{wAll ? '▴' : '▾'}</i>
                 </button>
@@ -429,26 +444,26 @@ export default function Menu() {
                   {isWine && (
                     <div className="wtools">
                       {wColors.length > 0 && (
-                        <label><span>Вид</span>
+                        <label><span>{t.type}</span>
                           <select value={wc} onChange={e => setWColor(e.target.value)}>
-                            <option value="">Всички</option>
-                            {wColors.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                            <option value="">{t.all}</option>
+                            {wColors.map(([k]) => <option key={k} value={k}>{colorLabel(k)}</option>)}
                           </select>
                         </label>
                       )}
-                      <label><span>Цена</span>
+                      <label><span>{t.price}</span>
                         <select value={mode} onChange={e => setWMode(e.target.value)}>
-                          <option value="all">Всички</option>
-                          <option value="glass">На чаша</option>
-                          <option value="bottle">Бутилка</option>
+                          <option value="all">{t.all}</option>
+                          <option value="glass">{t.byGlass}</option>
+                          <option value="bottle">{t.bottle}</option>
                         </select>
                       </label>
-                      <label><span>Подреди</span>
+                      <label><span>{t.sort}</span>
                         <select value={wSort} onChange={e => setWSort(e.target.value)}>
-                          <option value="taste">По вкус</option>
-                          <option value="name">По име</option>
-                          <option value="price">По цена</option>
-                          <option value="color">По вид</option>
+                          <option value="taste">{t.sTaste}</option>
+                          <option value="name">{t.sName}</option>
+                          <option value="price">{t.sPrice}</option>
+                          <option value="color">{t.sColor}</option>
                         </select>
                       </label>
                     </div>
