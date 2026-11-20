@@ -182,7 +182,7 @@ export default function Menu() {
     <button type="button" key={i.id}
       className={`dish${openId === i.id ? ' open' : ''}${i.soldOut ? ' out' : ''}`}
       onClick={() => setOpenId(openId === i.id ? null : i.id)}>
-      {i.photo ? <img className="pic" src={i.photo} alt={i.name} loading="lazy" /> : isWine && <span className={`bt ${i.wineColor || ''}`}><Bottle src={wm.areas.find(a => a.id === i.area)?.bottle || wm.bottle} /></span>}
+      {isWine ? <span className={`bt ${i.wineColor || ''}`}><Bottle src={i.photo} /></span> : i.photo && <img className="pic" src={i.photo} alt={i.name} loading="lazy" />}
       <div className="info">
         <h3>{i.name}</h3>
         {isWine && wline1(i, hideArea) && <p className="wmeta">{wline1(i, hideArea)}</p>}

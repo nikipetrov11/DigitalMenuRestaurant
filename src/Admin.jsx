@@ -9,7 +9,7 @@ import {
 } from 'firebase/firestore'
 import { auth, db } from './firebase'
 import QRCode from 'qrcode'
-import { fileToDataUrl, WINE_COLORS, WINE_TASTES, WINE_AREAS, isWineCat, isAlcCat, CASA_IG, isCasa } from './util'
+import { fileToDataUrl, bottleCutout, WINE_COLORS, WINE_TASTES, WINE_AREAS, isWineCat, isAlcCat, CASA_IG, isCasa } from './util'
 import { resolveMap, DEFAULT_MAP, DEFAULT_BG, labelClass } from './winemap'
 
 const SUGGEST = ['Салати', 'Предястия', 'Основни ястия', 'Пици', 'Паста', 'Десерти', 'Напитки']
@@ -127,7 +127,15 @@ function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
 
   async function pick(e) {
     const file = e.target.files[0]
-    if (file) setF({ ...f, photo: await fileToDataUrl(file, 480, 0.6) })
+    if (!file) return
+    setBusy(true)
+    try {
+      // за вино: автоматично изрязана бутилка (прозрачен фон); за останалите – обикновена снимка
+      const url = wine ? await bottleCutout(file) : await fileToDataUrl(file, 480, 0.6)
+      setF(p => ({ ...p, photo: url }))
+    } catch { setMsg('Снимката не се зареди.') }
+    setBusy(false)
+    e.target.value = ''
   }
 
   async function save(e) {
@@ -206,8 +214,8 @@ function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
       <form onSubmit={save} className="stack card">
         <h2>{editId ? W.edit : W.add}</h2>
 
-        <label className="upload">
-          {f.photo ? <img src={f.photo} alt="" /> : <span>Натисни, за да добавиш снимка</span>}
+        <label className={`upload${wine && f.photo ? ' cut' : ''}`}>
+          {f.photo ? <img src={f.photo} alt="" /> : <span>{wine ? 'Качи снимка на бутилката – фонът се маха автоматично' : 'Натисни, за да добавиш снимка'}</span>}
           <input type="file" accept="image/*" onChange={pick} hidden />
         </label>
         {f.photo && <button type="button" className="link" onClick={() => setF({ ...f, photo: '' })}>Махни снимката</button>}

@@ -17,6 +17,77 @@ export function fileToDataUrl(file, max = 800, quality = 0.72, type = 'image/jpe
   })
 }
 
+// Изрязва бутилка от снимка: маха фона (flood fill от краищата), реже по бутилката и връща прозрачен PNG.
+// Ако фонът не може да се отдели, връща цялата снимка без да я приближава.
+export async function bottleCutout(file, H = 360) {
+  const img = await new Promise((res, rej) => {
+    const im = new Image(), url = URL.createObjectURL(file)
+    im.onload = () => { URL.revokeObjectURL(url); res(im) }
+    im.onerror = rej
+    im.src = url
+  })
+  const s = Math.min(1, 640 / Math.max(img.width, img.height))
+  const w = Math.max(2, Math.round(img.width * s)), h = Math.max(2, Math.round(img.height * s))
+  const c = document.createElement('canvas')
+  c.width = w; c.height = h
+  const g = c.getContext('2d', { willReadFrequently: true })
+  g.drawImage(img, 0, 0, w, h)
+  const im = g.getImageData(0, 0, w, h), d = im.data
+  const dist = (a, b) => Math.hypot(d[a] - d[b], d[a + 1] - d[b + 1], d[a + 2] - d[b + 2])
+  // еталонни цветове на фона: ъгли и средите на страните
+  const pts = [[0,0],[w-1,0],[0,h-1],[w-1,h-1],[w>>1,0],[w>>1,h-1],[0,h>>1],[w-1,h>>1]].map(([x,y]) => (y * w + x) * 4)
+  const bg = new Uint8Array(w * h), q = []
+  const push = (x, y) => { const i = y * w + x; if (!bg[i]) { bg[i] = 1; q.push(i) } }
+  const near = k => pts.some(r => dist(k, r) < 38)
+  for (let x = 0; x < w; x++) for (const y of [0, h - 1]) if (near((y * w + x) * 4)) push(x, y)
+  for (let y = 0; y < h; y++) for (const x of [0, w - 1]) if (near((y * w + x) * 4)) push(x, y)
+  while (q.length) {
+    const i = q.pop(), x = i % w, y = (i / w) | 0, k = i * 4
+    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const nx = x + dx, ny = y + dy
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue
+      const j = ny * w + nx
+      if (bg[j]) continue
+      const kj = j * 4
+      // фон е: прилича на съседния фонов пиксел (плавен преход) или на еталонен цвят
+      if (dist(kj, k) < 12 || near(kj)) { bg[j] = 1; q.push(j) }
+    }
+  }
+  let minX = w, minY = h, maxX = -1, maxY = -1, left = 0
+  for (let i = 0; i < w * h; i++) {
+    if (bg[i]) { d[i * 4 + 3] = 0; continue }
+    left++
+    const x = i % w, y = (i / w) | 0
+    if (x < minX) minX = x
+    if (x > maxX) maxX = x
+    if (y < minY) minY = y
+    if (y > maxY) maxY = y
+  }
+  const share = left / (w * h)
+  if (share < 0.03 || share > 0.9 || maxX < 0) return fileToDataUrl(file, 480, 0.7)
+  // изглаждане: пиксели до фона стават полупрозрачни
+  const a0 = new Uint8Array(w * h)
+  for (let i = 0; i < w * h; i++) a0[i] = d[i * 4 + 3]
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const i = y * w + x
+    if (!a0[i]) continue
+    let n = 0
+    if (!a0[i - 1]) n++
+    if (!a0[i + 1]) n++
+    if (!a0[i - w]) n++
+    if (!a0[i + w]) n++
+    if (n >= 2) d[i * 4 + 3] = 90
+    else if (n === 1) d[i * 4 + 3] = 200
+  }
+  g.putImageData(im, 0, 0)
+  const cw = maxX - minX + 1, ch = maxY - minY + 1
+  const k = Math.min(1, H / ch)
+  const o = document.createElement('canvas')
+  o.width = Math.max(1, Math.round(cw * k)); o.height = Math.max(1, Math.round(ch * k))
+  o.getContext('2d').drawImage(c, minX, minY, cw, ch, 0, 0, o.width, o.height)
+  return o.toDataURL('image/png')
+}
+
 // Винена карта: цвят и вкус (сладост) на виното
 export const WINE_COLORS = [['red', 'Червено'], ['white', 'Бяло'], ['rose', 'Розе'], ['sparkling', 'Пенливо'], ['orange', 'Оранжево']]
 export const WINE_TASTES = [['dry', 'Сухо'], ['semi-dry', 'Полусухо'], ['semi-sweet', 'Полусладко'], ['sweet', 'Сладко']]
