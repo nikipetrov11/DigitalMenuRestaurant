@@ -543,3 +543,7 @@ header > .status { margin: 12px 20px 0; }
 /* ---- Без имена: остава само броят вина ---- */
 .wmap.nonames .wlab { display: none; }
 .wmap.nonames .wpin b { display: block; bottom: -4px; right: -4px; }
+
+/* ---- По-лесно докосване: цялата област се щраква, бутилката има по-голямо поле ---- */
+.wpin::after { content: ""; position: absolute; inset: -12px -16px; }
+.wmapbox.d3 .wmap { cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { doc, collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from './firebase'
 import { WINE_COLORS, WINE_TASTES, CASA_IG, isCasa } from './util'
-import { resolveMap, labelClass } from './winemap'
+import { resolveMap, labelClass, pickArea } from './winemap'
 
 const Bottle = ({ src }) => src ? <img src={src} alt="" aria-hidden="true" /> : (
   <svg viewBox="0 0 24 48" aria-hidden="true" focusable="false">
@@ -184,6 +184,12 @@ export default function Menu() {
   )
   const dish = dishIn(false)
 
+  const toggleArea = id => {
+    const next = area === id ? '' : id
+    setWArea(next)
+    if (next) setTimeout(() => document.getElementById('wdrop')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80)
+  }
+
   function goTo(i) {
     const c = all.find(x => x.name === catOf(i))
     const top = (c && c.parent && all.find(x => x.name === c.parent)) || c
@@ -338,7 +344,13 @@ export default function Menu() {
               <h2>{title} <small>{count} {count === 1 ? 'продукт' : 'продукта'}</small></h2>
               {mapView && (
                 <div className="wmapbox d3" style={{ '--fon': `url("${wm.bg}")`, '--bs': wm.size }}>
-                  <div className={`wmap${area ? ' sel' : ''}${wm.names ? '' : ' nonames'}`} style={{ aspectRatio: wm.ratio }}>
+                  <div className={`wmap${area ? ' sel' : ''}${wm.names ? '' : ' nonames'}`} style={{ aspectRatio: wm.ratio }}
+                    onClick={async e => {
+                      if (e.target !== e.currentTarget) return
+                      const el = e.currentTarget
+                      const id = await pickArea(wm.image, wm.areas, (e.nativeEvent.offsetX / el.clientWidth) * 100, (e.nativeEvent.offsetY / el.clientHeight) * 100)
+                      if (id && areaCount(id)) toggleArea(id)
+                    }}>
                     <img src={wm.image} alt="Карта на винените райони на България" />
                     {wm.areas.map(a => {
                       const n = areaCount(a.id)
@@ -346,11 +358,7 @@ export default function Menu() {
                         <button type="button" key={a.id} className={`wpin${area === a.id ? ' on' : ''}${n ? '' : ' none'}`}
                           style={{ left: `${a.x}%`, top: `${a.y}%` }} disabled={!n} aria-pressed={area === a.id} aria-expanded={area === a.id}
                           aria-label={`${a.name}: ${n}`}
-                          onClick={() => {
-                            const next = area === a.id ? '' : a.id
-                            setWArea(next)
-                            if (next) setTimeout(() => document.getElementById('wdrop')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80)
-                          }}>
+                          onClick={() => toggleArea(a.id)}>
                           <Bottle src={a.bottle || wm.bottle} />{n > 0 && <b>{n}</b>}
                           <span className={`wlab ${labelClass(a)}`}><em>{a.name}</em><small>{n} {n === 1 ? 'вино' : 'вина'}</small></span>
                         </button>
