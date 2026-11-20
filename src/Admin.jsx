@@ -234,7 +234,7 @@ function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
           <input type="file" accept="image/*" onChange={pick} hidden />
         </label>
         {f.photo && <button type="button" className="link" onClick={() => setF({ ...f, photo: '' })}>Махни снимката</button>}
-        {wine && <label className="check"><input type="checkbox" checked={noCut} onChange={e => setNoCut(e.target.checked)} /> Не изрязвай бутилката (качи снимката такава, каквато е)</label>}
+        {wine && <label className="check"><span>Не изрязвай бутилката (качи снимката такава, каквато е)</span><input type="checkbox" checked={noCut} onChange={e => setNoCut(e.target.checked)} /></label>}
 
         <label>Име <input value={f.name} onChange={set('name')} required /></label>
         {!wine && <label>Цена ({cur}) <input type="number" step="0.01" min="0" value={f.price} onChange={set('price')} required /></label>}
@@ -296,7 +296,7 @@ function Dishes({ docRef, col, items, catObjs, cur, W, areas }) {
           </div>
         )}
         <label>Описание (по желание) <input value={f.desc} onChange={set('desc')} /></label>
-        <label className="check"><input type="checkbox" checked={f.featured} onChange={e => setF({ ...f, featured: e.target.checked })} /> Препоръчваме (показва се най-горе с голяма снимка)</label>
+        <label className="check"><span>Препоръчваме (показва се най-горе с голяма снимка)</span><input type="checkbox" checked={f.featured} onChange={e => setF({ ...f, featured: e.target.checked })} /></label>
 
         <button disabled={busy}>{editId ? 'Запази промените' : 'Добави в менюто'}</button>
         {editId && <button type="button" className="link" onClick={() => { setEditId(null); setF(empty); setMsg('') }}>Отказ</button>}
@@ -535,55 +535,75 @@ function Look({ docRef, rest }) {
     }
   }
 
+  const chk = (k, text) => (
+    <label className="check"><span>{text}</span><input type="checkbox" checked={!!v[k]} onChange={e => setV({ ...v, [k]: e.target.checked })} /></label>
+  )
+
   return (
-    <form onSubmit={save} className="stack card">
-      <h2>Външен вид</h2>
-      <label>Име на заведението <input value={v.name} onChange={e => setV({ ...v, name: e.target.value })} required /></label>
-      <label className="check"><input type="checkbox" checked={v.hideName} onChange={e => setV({ ...v, hideName: e.target.checked })} /> Скрий името до логото (ако логото вече го съдържа)</label>
-
-      <label className="check"><input type="checkbox" checked={v.coverIdentity} onChange={e => setV({ ...v, coverIdentity: e.target.checked })} /> Покажи логото, името и Instagram върху снимката на банера (като постер)</label>
-        <label className="check"><input type="checkbox" checked={v.hideLogo} onChange={e => setV({ ...v, hideLogo: e.target.checked })} /> Скрий кръглото лого</label>
-        <label className="check"><input type="checkbox" checked={v.hideIg} onChange={e => setV({ ...v, hideIg: e.target.checked })} /> Скрий Instagram иконата до името</label>
-        <label className="check"><input type="checkbox" checked={v.hideTagline} onChange={e => setV({ ...v, hideTagline: e.target.checked })} /> Скрий приветствието („Добре дошли“) върху банера</label>
-        <label className="check"><input type="checkbox" checked={v.igOnImage} onChange={e => setV({ ...v, igOnImage: e.target.checked })} /> Instagram бутонът е този от снимката (натиска се директно върху нея)</label>
-
-      <label className="check"><input type="checkbox" checked={v.drinksOnly} onChange={e => setV({ ...v, drinksOnly: e.target.checked })} /> Само напитки (в панела пише „напитки“ вместо „ястия“)</label>
-
-      <div>
-        <strong>Стил на менюто</strong>
-        <div className="modes">
-          <button type="button" className={`mode${v.theme !== 'luxury' ? ' on' : ''}`} onClick={() => setV({ ...v, theme: 'classic' })}>Класически</button>
-          <button type="button" className={`mode${v.theme === 'luxury' ? ' on' : ''}`} onClick={() => setV({ ...v, theme: 'luxury' })}>Луксозен (тъмен)</button>
+    <form onSubmit={save} className="look">
+      <section className="sect">
+        <h2>Основно</h2>
+        <label>Име на заведението <input value={v.name} onChange={e => setV({ ...v, name: e.target.value })} required /></label>
+        <div className="row2">
+          <label>Валута
+            <select value={v.currency} onChange={e => setV({ ...v, currency: e.target.value })}>
+              <option value="€">€ (евро)</option>
+              <option value="лв.">лв.</option>
+            </select>
+          </label>
+          <div className="field">
+            <span className="lbl">Стил на менюто</span>
+            <div className="modes">
+              <button type="button" className={`mode${v.theme !== 'luxury' ? ' on' : ''}`} onClick={() => setV({ ...v, theme: 'classic' })}>Светъл</button>
+              <button type="button" className={`mode${v.theme === 'luxury' ? ' on' : ''}`} onClick={() => setV({ ...v, theme: 'luxury' })}>Тъмен</button>
+            </div>
+          </div>
         </div>
-      </div>
+        {chk('drinksOnly', 'Само напитки (в панела пише „напитки“ вместо „ястия“)')}
+        <div className="field">
+          <span className="lbl">Цвят на менюто</span>
+          <div className="chips">
+            {COLORS.map(c => (
+              <button key={c} type="button" className={`swatch${v.color === c ? ' on' : ''}`} style={{ background: c }}
+                aria-label={c} onClick={() => setV({ ...v, color: c })} />
+            ))}
+            <input type="color" value={v.color} onChange={e => setV({ ...v, color: e.target.value })} aria-label="Друг цвят" />
+          </div>
+        </div>
+      </section>
 
-      <div>
-        <strong>Лого</strong>
+      <section className="sect">
+        <h2>Лого</h2>
         <p className="muted">Най-добре PNG с прозрачен фон. Показва се вляво, върху долния ръб на банера.</p>
-        <input type="file" accept="image/*" onChange={pickLogo} />
+        <label className="upload small"><span>{v.logo ? 'Смени логото' : '+ Качи лого'}</span><input type="file" accept="image/*" onChange={pickLogo} hidden /></label>
         {v.logo && (
           <div className="logo-row">
             <img className={`avatar-prev ${v.logoShape}${v.logoBg === 'light' ? ' light' : ''}`} src={v.logo} alt="" />
-            <button type="button" className="link" onClick={() => setV({ ...v, logo: '' })}>Махни</button>
+            <button type="button" className="link danger" onClick={() => setV({ ...v, logo: '' })}>Махни</button>
           </div>
         )}
-        <p className="muted" style={{ marginTop: 10 }}>Форма на логото</p>
-        <div className="modes wrapmodes">
-          {[['circle', 'Кръг'], ['rounded', 'Закръглен квадрат'], ['square', 'Квадрат'], ['wide', 'Правоъгълник'], ['free', 'Без рамка']].map(([k, t]) => (
-            <button key={k} type="button" className={`mode${v.logoShape === k ? ' on' : ''}`} onClick={() => setV({ ...v, logoShape: k })}>{t}</button>
-          ))}
+        <div className="field">
+          <span className="lbl">Форма</span>
+          <div className="modes wrapmodes">
+            {[['circle', 'Кръг'], ['rounded', 'Закръглен'], ['square', 'Квадрат'], ['wide', 'Правоъгълник'], ['free', 'Без рамка']].map(([k, t]) => (
+              <button key={k} type="button" className={`mode${v.logoShape === k ? ' on' : ''}`} onClick={() => setV({ ...v, logoShape: k })}>{t}</button>
+            ))}
+          </div>
         </div>
         {v.logoShape !== 'free' && (
-          <div className="modes">
-            <button type="button" className={`mode${v.logoBg !== 'light' ? ' on' : ''}`} onClick={() => setV({ ...v, logoBg: 'dark' })}>Тъмен фон</button>
-            <button type="button" className={`mode${v.logoBg === 'light' ? ' on' : ''}`} onClick={() => setV({ ...v, logoBg: 'light' })}>Светъл фон</button>
+          <div className="field">
+            <span className="lbl">Фон на логото</span>
+            <div className="modes">
+              <button type="button" className={`mode${v.logoBg !== 'light' ? ' on' : ''}`} onClick={() => setV({ ...v, logoBg: 'dark' })}>Тъмен</button>
+              <button type="button" className={`mode${v.logoBg === 'light' ? ' on' : ''}`} onClick={() => setV({ ...v, logoBg: 'light' })}>Светъл</button>
+            </div>
           </div>
         )}
-      </div>
+      </section>
 
-      <div>
-        <strong>Снимка на банера (по желание, до 3)</strong>
-        <p className="muted">Широка снимка най-горе. Без нея банерът е тъмен и елегантен. Не качвай тук логото.</p>
+      <section className="sect">
+        <h2>Банер</h2>
+        <p className="muted">Широка снимка най-горе (до 3). Без нея банерът е тъмен и елегантен. Не качвай тук логото.</p>
         <div className="slides">
           {v.slides.map((s, i) => (
             <div key={i} className="slide">
@@ -595,61 +615,46 @@ function Look({ docRef, rest }) {
         {v.slides.length < 3 && (
           <label className="upload small"><span>+ Добави снимка</span><input type="file" accept="image/*" onChange={addSlide} hidden /></label>
         )}
-      </div>
+        <div className="opts">
+          {chk('coverIdentity', 'Лого, име и Instagram върху снимката на банера (като постер)')}
+          {chk('igOnImage', 'Instagram бутонът е този от снимката (натиска се директно върху нея)')}
+          {chk('hideName', 'Скрий името до логото (ако логото вече го съдържа)')}
+          {chk('hideLogo', 'Скрий кръглото лого')}
+          {chk('hideIg', 'Скрий Instagram иконата до името')}
+          {chk('hideTagline', 'Скрий приветствието („Добре дошли“) върху банера')}
+        </div>
+      </section>
 
-      <div>
-        <strong>Работно време (по желание)</strong>
-        <p className="muted">Показва "Отворено до 23:00" под името. Остави празно, за да не се показва.</p>
+      <section className="sect">
+        <h2>Работно време</h2>
+        <p className="muted">Показва „Отворено до 23:00“ под името. Остави празно, за да не се показва.</p>
         <div className="row2">
           <label>Отваря в <input type="time" value={v.opens} onChange={e => setV({ ...v, opens: e.target.value })} /></label>
           <label>Затваря в <input type="time" value={v.closes} onChange={e => setV({ ...v, closes: e.target.value })} /></label>
         </div>
-        <label className="check"><input type="checkbox" checked={v.hideStatus} onChange={e => setV({ ...v, hideStatus: e.target.checked })} /> Скрий реда „Отворено / Затворено“ в менюто</label>
-      </div>
+        {chk('hideStatus', 'Скрий реда „Отворено / Затворено“ в менюто')}
+      </section>
 
-      <div>
-        <strong>Информация за заведението (по желание)</strong>
-        <p className="muted">Показва се в бутон „Информация“ до името. Работното време се взима от полетата по-горе. Празните полета не се показват.</p>
-        <div className="stack">
-          <label>Кратко приветствие под името <input value={v.tagline} onChange={e => setV({ ...v, tagline: e.target.value })} placeholder="Напр. Добре дошли в мястото за чаша ароматно кафе" /></label>
-          <div className="row2">
-            <label>Wi-Fi мрежа <input value={v.wifi} onChange={e => setV({ ...v, wifi: e.target.value })} /></label>
-            <label>Wi-Fi парола <input value={v.wifiPass} onChange={e => setV({ ...v, wifiPass: e.target.value })} /></label>
-          </div>
-          <label>Адрес <input value={v.address} onChange={e => setV({ ...v, address: e.target.value })} placeholder="гр. Първомай, ул. Княз Борис I 1Б" /></label>
-          <label>Телефон <input type="tel" value={v.phone} onChange={e => setV({ ...v, phone: e.target.value })} placeholder="+359 ..." /></label>
-          <label>Facebook страница (линк) <input value={v.facebook} onChange={e => setV({ ...v, facebook: e.target.value })} placeholder="https://facebook.com/..." /></label>
-          <label>Google отзиви (линк) <input value={v.google} onChange={e => setV({ ...v, google: e.target.value })} placeholder="https://g.page/r/.../review" /></label>
+      <section className="sect">
+        <h2>Информация и контакти</h2>
+        <p className="muted">Показва се в бутон „Информация“ до името. Празните полета не се показват.</p>
+        <label>Кратко приветствие под името <input value={v.tagline} onChange={e => setV({ ...v, tagline: e.target.value })} placeholder="Напр. Добре дошли в мястото за чаша ароматно кафе" /></label>
+        <div className="row2">
+          <label>Wi-Fi мрежа <input value={v.wifi} onChange={e => setV({ ...v, wifi: e.target.value })} /></label>
+          <label>Wi-Fi парола <input value={v.wifiPass} onChange={e => setV({ ...v, wifiPass: e.target.value })} /></label>
         </div>
-      </div>
-
-      <div className="stack">
-        <strong>Instagram</strong>
+        <label>Адрес <input value={v.address} onChange={e => setV({ ...v, address: e.target.value })} placeholder="гр. Първомай, ул. Княз Борис I 1Б" /></label>
+        <label>Телефон <input type="tel" value={v.phone} onChange={e => setV({ ...v, phone: e.target.value })} placeholder="+359 ..." /></label>
         <label>Instagram профил (линк) <input value={v.instagram} onChange={e => setV({ ...v, instagram: e.target.value })} placeholder="https://www.instagram.com/..." /></label>
-        <p className="muted" style={{ margin: 0 }}>Показва се като иконка вдясно от името. Остави празно, за да не се показва.</p>
-        <label className="check"><input type="checkbox" checked={v.hideInfo} onChange={e => setV({ ...v, hideInfo: e.target.checked })} /> Скрий бутона „Информация“ в менюто</label>
+        <label>Facebook страница (линк) <input value={v.facebook} onChange={e => setV({ ...v, facebook: e.target.value })} placeholder="https://facebook.com/..." /></label>
+        <label>Google отзиви (линк) <input value={v.google} onChange={e => setV({ ...v, google: e.target.value })} placeholder="https://g.page/r/.../review" /></label>
+        {chk('hideInfo', 'Скрий бутона „Информация“ в менюто')}
+      </section>
+
+      <div className="savebar">
+        {msg && <p className={msg.startsWith('Запазено') ? 'ok' : 'err'}>{msg}</p>}
+        <button>Запази</button>
       </div>
-
-      <div>
-        <strong>Цвят на менюто</strong>
-        <div className="chips">
-          {COLORS.map(c => (
-            <button key={c} type="button" className={`swatch${v.color === c ? ' on' : ''}`} style={{ background: c }}
-              aria-label={c} onClick={() => setV({ ...v, color: c })} />
-          ))}
-          <input type="color" value={v.color} onChange={e => setV({ ...v, color: e.target.value })} aria-label="Друг цвят" />
-        </div>
-      </div>
-
-      <label>Валута
-        <select value={v.currency} onChange={e => setV({ ...v, currency: e.target.value })}>
-          <option value="€">€ (евро)</option>
-          <option value="лв.">лв.</option>
-        </select>
-      </label>
-
-      <button>Запази</button>
-      {msg && <p className={msg.startsWith('Запазено') ? 'ok' : 'err'}>{msg}</p>}
     </form>
   )
 }
@@ -736,8 +741,8 @@ function MapTab({ docRef, rest, items }) {
   return (
     <form onSubmit={save} className="stack card">
       <h2>Карта на винените области</h2>
-      <label className="check"><input type="checkbox" checked={v.on} onChange={e => setV({ ...v, on: e.target.checked })} /> Показвай картата във винената карта на менюто</label>
-      <label className="check"><input type="checkbox" checked={v.names} onChange={e => setV({ ...v, names: e.target.checked })} /> Показвай имената на областите до бутилките (изключено: остава само броят вина)</label>
+      <label className="check"><span>Показвай картата във винената карта на менюто</span><input type="checkbox" checked={v.on} onChange={e => setV({ ...v, on: e.target.checked })} /></label>
+      <label className="check"><span>Показвай имената на областите до бутилките (изключено: остава само броят вина)</span><input type="checkbox" checked={v.names} onChange={e => setV({ ...v, names: e.target.checked })} /></label>
       <label>Размер на бутилките: ×{Number(v.size).toFixed(1)}
         <input type="range" min="0.8" max="2.4" step="0.1" value={v.size} onChange={e => setV({ ...v, size: Number(e.target.value) })} />
       </label>
