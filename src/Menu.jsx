@@ -78,7 +78,7 @@ export default function Menu() {
   const glassMoney = i => `${Number(i.glassPrice).toFixed(2)} ${cur}`
   const bottleMoney = i => `${Number(i.price).toFixed(2)} ${cur}`
   const money = i => (hasBottle(i) ? bottleMoney(i) : hasGlass(i) ? glassMoney(i) : '')
-  const status = openStatus(rest.opens, rest.closes)
+  const status = rest.hideStatus ? null : openStatus(rest.opens, rest.closes)
   const hasInfo = !!(rest.opens || rest.wifi || rest.address || rest.phone || rest.facebook || rest.google)
   const wm = resolveMap(rest)
   const showMap = wm.on && wm.areas.length > 0

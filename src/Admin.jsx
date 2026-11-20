@@ -482,7 +482,7 @@ function Look({ docRef, rest }) {
     logo: rest.logo || '', logoBg: rest.logoBg || 'dark', logoShape: rest.logoShape || 'circle', opens: rest.opens || '', closes: rest.closes || '',
     drinksOnly: rest.drinksOnly ?? /casa\s*noma/i.test(rest.name || ''), tagline: rest.tagline || '', wifi: rest.wifi || '', wifiPass: rest.wifiPass || '',
     address: rest.address || '', phone: rest.phone || '', facebook: rest.facebook || '', google: rest.google || '',
-    instagram: rest.instagram ?? (isCasa(rest) ? CASA_IG : ''), hideInfo: rest.hideInfo ?? isCasa(rest),
+    hideStatus: !!rest.hideStatus, instagram: rest.instagram ?? (isCasa(rest) ? CASA_IG : ''), hideInfo: rest.hideInfo ?? isCasa(rest),
     slides: rest.slides?.length ? rest.slides : rest.cover ? [rest.cover] : [],
   })
   const [msg, setMsg] = useState('')
@@ -572,6 +572,7 @@ function Look({ docRef, rest }) {
           <label>Отваря в <input type="time" value={v.opens} onChange={e => setV({ ...v, opens: e.target.value })} /></label>
           <label>Затваря в <input type="time" value={v.closes} onChange={e => setV({ ...v, closes: e.target.value })} /></label>
         </div>
+        <label className="check"><input type="checkbox" checked={v.hideStatus} onChange={e => setV({ ...v, hideStatus: e.target.checked })} /> Скрий реда „Отворено / Затворено“ в менюто</label>
       </div>
 
       <div>
