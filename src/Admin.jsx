@@ -494,7 +494,7 @@ function Look({ docRef, rest }) {
 
   async function pickLogo(e) {
     const file = e.target.files[0]
-    if (file) setV({ ...v, logo: await fileToDataUrl(file, 420, 0.9, 'image/png') })
+    if (file) setV({ ...v, logo: await fileToDataUrl(file, 640, 0.9, 'image/png') })
   }
 
   async function save(e) {

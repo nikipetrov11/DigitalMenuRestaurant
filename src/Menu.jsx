@@ -201,7 +201,7 @@ export default function Menu() {
   }
 
   const ident = (
-          <div className="idrow">
+          <div className={`idrow${rest.logoShape === 'free' ? ' vert' : ''}`}>
             <div className={`avatar${rest.logo ? ` ${rest.logoShape || 'circle'}${rest.logoBg === 'light' ? ' light' : ''}` : ' init'}`}>
               {rest.logo ? <img src={rest.logo} alt={rest.name} /> : <span>{rest.name.trim().charAt(0).toUpperCase()}</span>}
             </div>
